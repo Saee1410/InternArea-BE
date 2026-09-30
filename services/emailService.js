@@ -4,8 +4,6 @@ import nodemailer from "nodemailer";
 // GMAIL SMTP TRANSPORTER
 // =====================================================
 
-import nodemailer from "nodemailer";
-
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
