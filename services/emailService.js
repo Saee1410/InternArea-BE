@@ -30,34 +30,42 @@ transporter.verify((error, success) => {
 
 export const sendOTPEmail = async (email, otp) => {
     try {
+        console.log("📧 sendOTPEmail called");
+        console.log("📧 Email:", email);
+        console.log("🔢 OTP:", otp);
+
         const mailOptions = {
             from: `"InternArea" <${process.env.MAIL_USER}>`,
             to: email,
             subject: "Resume Builder - Email Verification OTP",
             html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto;">
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
                     <h2>Resume Builder</h2>
                     <p>Your OTP for email verification is:</p>
-                    <h1 style="letter-spacing: 8px; text-align: center; background: #f4f4f4; padding: 15px;">
+                    <h1 style="letter-spacing: 8px; text-align: center;">
                         ${otp}
                     </h1>
                     <p>This OTP is valid for 5 minutes.</p>
-                    <p>If you did not request this OTP, please ignore this email.</p>
                 </div>
             `,
         };
 
+        console.log("📤 Calling transporter.sendMail()...");
+
         const info = await transporter.sendMail(mailOptions);
-        console.log("✅ Resume OTP email sent successfully to:", email);
+
+        console.log("✅ EMAIL SENT");
         console.log("📨 Message ID:", info.messageId);
+        console.log("📨 Response:", info.response);
+
         return true;
 
     } catch (error) {
-        console.error("❌ Resume OTP Email Error:", error.message);
+        console.error("❌ EMAIL FAILED");
+        console.error(error);
         return false;
     }
 };
-
 // =====================================================
 // SEND FORGOT PASSWORD EMAIL
 // =====================================================
