@@ -844,7 +844,10 @@ export const googleLogin = async (req, res) => {
         // 7. CHROME → OTP LOGIN
         // =====================================================
 
-        if (browser === "Google Chrome") {
+        if (browser === "Google Chrome" || 
+              browser === "Chrome" ||
+    browser?.toLowerCase() === "chrome"
+        ) {
 
             console.log(
                 "🌐 Google Chrome detected"

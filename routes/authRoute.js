@@ -10,7 +10,7 @@ router.post("/register", register);
 router.post("/forgot-password", forgotPassword);
 router.post("/login", login);
 router.post("/verify-login-otp", verifyLoginOTP);
-router.post("/google", googleLogin)
+router.post("/google", googleLogin);
 router.get("/users", authMiddleware, getAllUsers);
 router.get("/login-history", authMiddleware, getMyLoginHistory);
 router.get("/profile", authMiddleware, (req, res) => {
