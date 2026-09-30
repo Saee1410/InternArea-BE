@@ -658,12 +658,26 @@ export const googleLogin = async (req, res) => {
 
     try {
 
+        // =====================================================
+        // 1. API HIT CHECK
+        // =====================================================
+
+        console.log("🔥 GOOGLE LOGIN API HIT");
+
+        console.log(
+            "Credential received:",
+            !!req.body?.credential
+        );
+
+
         const {
             credential,
         } = req.body;
 
 
         if (!credential) {
+
+            console.log("❌ Google credential missing");
 
             return res.status(400).json({
 
@@ -674,9 +688,11 @@ export const googleLogin = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // Get Login Information
-        // ---------------------------------------------
+        // =====================================================
+        // 2. GET LOGIN INFORMATION
+        // =====================================================
+
+        console.log("🔍 Getting login information...");
 
         const {
             browser,
@@ -686,17 +702,35 @@ export const googleLogin = async (req, res) => {
         } = getLoginInfo(req);
 
 
-        // ---------------------------------------------
-        // Mobile Time Restriction
-        // ---------------------------------------------
+        console.log("🌐 Browser:", browser);
+        console.log("💻 Operating System:", operatingSystem);
+        console.log("📱 Device Type:", deviceType);
+        console.log("🌍 IP Address:", ipAddress);
+
+
+        // =====================================================
+        // 3. MOBILE TIME RESTRICTION
+        // =====================================================
 
         if (deviceType === "mobile") {
+
+            console.log("📱 Mobile device detected");
 
             const allowedTime =
                 checkMobileLoginTime();
 
 
+            console.log(
+                "⏰ Mobile login allowed:",
+                allowedTime
+            );
+
+
             if (!allowedTime) {
+
+                console.log(
+                    "❌ Mobile login blocked due to time restriction"
+                );
 
                 return res.status(403).json({
 
@@ -708,9 +742,17 @@ export const googleLogin = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // Verify Google Token
-        // ---------------------------------------------
+        // =====================================================
+        // 4. VERIFY GOOGLE TOKEN
+        // =====================================================
+
+        console.log("🔐 Verifying Google token...");
+
+        console.log(
+            "Google Client ID exists:",
+            !!process.env.GOOGLE_CLIENT_ID
+        );
+
 
         const ticket =
             await client.verifyIdToken({
@@ -721,6 +763,9 @@ export const googleLogin = async (req, res) => {
                     process.env.GOOGLE_CLIENT_ID,
 
             });
+
+
+        console.log("✅ Google token verified successfully");
 
 
         const payload =
@@ -734,9 +779,16 @@ export const googleLogin = async (req, res) => {
         } = payload;
 
 
-        // ---------------------------------------------
-        // Find User
-        // ---------------------------------------------
+        console.log("👤 Google User Email:", email);
+        console.log("👤 Google User Name:", name);
+
+
+        // =====================================================
+        // 5. FIND USER
+        // =====================================================
+
+        console.log("🔎 Searching user in MongoDB...");
+
 
         let user =
             await User.findOne({
@@ -744,11 +796,22 @@ export const googleLogin = async (req, res) => {
             });
 
 
-        // ---------------------------------------------
-        // Create User if not exists
-        // ---------------------------------------------
+        console.log(
+            "👤 User found:",
+            !!user
+        );
+
+
+        // =====================================================
+        // 6. CREATE USER IF NOT EXISTS
+        // =====================================================
 
         if (!user) {
+
+            console.log(
+                "🆕 User does not exist. Creating new user..."
+            );
+
 
             user = await User.create({
 
@@ -760,14 +823,41 @@ export const googleLogin = async (req, res) => {
                     picture,
 
             });
+
+
+            console.log(
+                "✅ New user created:",
+                user._id
+            );
+
+        } else {
+
+            console.log(
+                "✅ Existing user found:",
+                user._id
+            );
+
         }
 
 
-        // ---------------------------------------------
-        // Chrome → OTP
-        // ---------------------------------------------
+        // =====================================================
+        // 7. CHROME → OTP LOGIN
+        // =====================================================
 
         if (browser === "Google Chrome") {
+
+            console.log(
+                "🌐 Google Chrome detected"
+            );
+
+            console.log(
+                "🔐 Starting OTP login flow..."
+            );
+
+
+            // -------------------------------------------------
+            // Generate OTP
+            // -------------------------------------------------
 
             const otp = Math.floor(
 
@@ -777,11 +867,36 @@ export const googleLogin = async (req, res) => {
             ).toString();
 
 
+            console.log(
+                "🔢 OTP generated:",
+                otp
+            );
+
+
+            // -------------------------------------------------
+            // OTP Expiry - 5 Minutes
+            // -------------------------------------------------
+
             const expiresAt =
                 new Date(
                     Date.now() +
                     5 * 60 * 1000
                 );
+
+
+            console.log(
+                "⏰ OTP expires at:",
+                expiresAt
+            );
+
+
+            // -------------------------------------------------
+            // Delete Previous OTP
+            // -------------------------------------------------
+
+            console.log(
+                "🗑️ Deleting previous OTPs..."
+            );
 
 
             await LoginOtp.deleteMany({
@@ -791,6 +906,20 @@ export const googleLogin = async (req, res) => {
                 email: user.email,
 
             });
+
+
+            console.log(
+                "✅ Previous OTPs deleted"
+            );
+
+
+            // -------------------------------------------------
+            // Save New OTP
+            // -------------------------------------------------
+
+            console.log(
+                "💾 Saving new OTP to MongoDB..."
+            );
 
 
             await LoginOtp.create({
@@ -808,6 +937,21 @@ export const googleLogin = async (req, res) => {
             });
 
 
+            console.log(
+                "✅ OTP saved to MongoDB"
+            );
+
+
+            // -------------------------------------------------
+            // Send OTP Email
+            // -------------------------------------------------
+
+            console.log(
+                "📧 Sending OTP email to:",
+                user.email
+            );
+
+
             const emailSent =
                 await sendOTPEmail(
                     user.email,
@@ -815,7 +959,22 @@ export const googleLogin = async (req, res) => {
                 );
 
 
+            console.log(
+                "📨 Email send result:",
+                emailSent
+            );
+
+
+            // -------------------------------------------------
+            // Email Failed
+            // -------------------------------------------------
+
             if (!emailSent) {
+
+                console.log(
+                    "❌ Failed to send login OTP"
+                );
+
 
                 return res.status(500).json({
 
@@ -826,6 +985,15 @@ export const googleLogin = async (req, res) => {
             }
 
 
+            // -------------------------------------------------
+            // OTP Successfully Sent
+            // -------------------------------------------------
+
+            console.log(
+                "✅ LOGIN OTP SENT SUCCESSFULLY"
+            );
+
+
             return res.status(200).json({
 
                 message:
@@ -833,17 +1001,37 @@ export const googleLogin = async (req, res) => {
 
                 requiresOTP: true,
 
-                email: user.email,
+                email:
+                    user.email,
 
-                userId: user._id,
+                userId:
+                    user._id,
 
             });
         }
 
 
-        // ---------------------------------------------
-        // Normal Google Login
-        // ---------------------------------------------
+        // =====================================================
+        // 8. NORMAL GOOGLE LOGIN
+        // =====================================================
+
+        console.log(
+            "🌐 Browser is not Chrome"
+        );
+
+        console.log(
+            "➡️ Proceeding with normal Google login"
+        );
+
+
+        // -----------------------------------------------------
+        // Login History
+        // -----------------------------------------------------
+
+        console.log(
+            "📝 Saving login history..."
+        );
+
 
         await LoginHistory.create({
 
@@ -862,6 +1050,20 @@ export const googleLogin = async (req, res) => {
         });
 
 
+        console.log(
+            "✅ Login history saved"
+        );
+
+
+        // =====================================================
+        // 9. GENERATE JWT
+        // =====================================================
+
+        console.log(
+            "🔑 Generating JWT token..."
+        );
+
+
         const token = jwt.sign(
 
             {
@@ -878,6 +1080,20 @@ export const googleLogin = async (req, res) => {
         );
 
 
+        console.log(
+            "✅ JWT generated successfully"
+        );
+
+
+        // =====================================================
+        // 10. SUCCESS RESPONSE
+        // =====================================================
+
+        console.log(
+            "🎉 GOOGLE LOGIN SUCCESSFUL"
+        );
+
+
         return res.status(200).json({
 
             message:
@@ -887,33 +1103,323 @@ export const googleLogin = async (req, res) => {
 
             user: {
 
-                id: user._id,
+                id:
+                    user._id,
 
-                name: user.name,
+                name:
+                    user.name,
 
-                email: user.email,
+                email:
+                    user.email,
 
-                role: user.role,
+                role:
+                    user.role,
 
             },
 
         });
 
+
     } catch (error) {
 
+        // =====================================================
+        // ERROR
+        // =====================================================
+
         console.error(
-            "Google Login Error:",
+            "❌❌❌ GOOGLE LOGIN ERROR ❌❌❌"
+        );
+
+        console.error(
+            "Error Name:",
+            error.name
+        );
+
+        console.error(
+            "Error Message:",
+            error.message
+        );
+
+        console.error(
+            "Full Error:",
             error
         );
+
 
         return res.status(500).json({
 
             message:
                 "Google login failed",
 
+            error:
+                error.message,
+
         });
+
     }
+
 };
+
+// export const googleLogin = async (req, res) => {
+
+//     try {
+
+//         const {
+//             credential,
+//         } = req.body;
+
+
+//         if (!credential) {
+
+//             return res.status(400).json({
+
+//                 message:
+//                     "Google credential is required",
+
+//             });
+//         }
+
+
+//         // ---------------------------------------------
+//         // Get Login Information
+//         // ---------------------------------------------
+
+//         const {
+//             browser,
+//             operatingSystem,
+//             deviceType,
+//             ipAddress,
+//         } = getLoginInfo(req);
+
+
+//         // ---------------------------------------------
+//         // Mobile Time Restriction
+//         // ---------------------------------------------
+
+//         if (deviceType === "mobile") {
+
+//             const allowedTime =
+//                 checkMobileLoginTime();
+
+
+//             if (!allowedTime) {
+
+//                 return res.status(403).json({
+
+//                     message:
+//                         "Mobile login is allowed only between 10:00 AM and 1:00 PM IST",
+
+//                 });
+//             }
+//         }
+
+
+//         // ---------------------------------------------
+//         // Verify Google Token
+//         // ---------------------------------------------
+
+//         const ticket =
+//             await client.verifyIdToken({
+
+//                 idToken: credential,
+
+//                 audience:
+//                     process.env.GOOGLE_CLIENT_ID,
+
+//             });
+
+
+//         const payload =
+//             ticket.getPayload();
+
+
+//         const {
+//             email,
+//             name,
+//             picture,
+//         } = payload;
+
+
+//         // ---------------------------------------------
+//         // Find User
+//         // ---------------------------------------------
+
+//         let user =
+//             await User.findOne({
+//                 email,
+//             });
+
+
+//         // ---------------------------------------------
+//         // Create User if not exists
+//         // ---------------------------------------------
+
+//         if (!user) {
+
+//             user = await User.create({
+
+//                 name,
+
+//                 email,
+
+//                 profilePhoto:
+//                     picture,
+
+//             });
+//         }
+
+
+//         // ---------------------------------------------
+//         // Chrome → OTP
+//         // ---------------------------------------------
+
+//         if (browser === "Google Chrome") {
+
+//             const otp = Math.floor(
+
+//                 100000 +
+//                 Math.random() * 900000
+
+//             ).toString();
+
+
+//             const expiresAt =
+//                 new Date(
+//                     Date.now() +
+//                     5 * 60 * 1000
+//                 );
+
+
+//             await LoginOtp.deleteMany({
+
+//                 userId: user._id,
+
+//                 email: user.email,
+
+//             });
+
+
+//             await LoginOtp.create({
+
+//                 userId: user._id,
+
+//                 email: user.email,
+
+//                 otp,
+
+//                 expiresAt,
+
+//                 verified: false,
+
+//             });
+
+
+//             const emailSent =
+//                 await sendOTPEmail(
+//                     user.email,
+//                     otp
+//                 );
+
+
+//             if (!emailSent) {
+
+//                 return res.status(500).json({
+
+//                     message:
+//                         "Failed to send login OTP",
+
+//                 });
+//             }
+
+
+//             return res.status(200).json({
+
+//                 message:
+//                     "Login OTP sent successfully",
+
+//                 requiresOTP: true,
+
+//                 email: user.email,
+
+//                 userId: user._id,
+
+//             });
+//         }
+
+
+//         // ---------------------------------------------
+//         // Normal Google Login
+//         // ---------------------------------------------
+
+//         await LoginHistory.create({
+
+//             user: user._id,
+
+//             browser,
+
+//             operatingSystem,
+
+//             deviceType,
+
+//             ipAddress,
+
+//             loginStatus: "success",
+
+//         });
+
+
+//         const token = jwt.sign(
+
+//             {
+//                 id: user._id,
+//                 role: user.role,
+//             },
+
+//             process.env.JWT_SECRET,
+
+//             {
+//                 expiresIn: "7d",
+//             }
+
+//         );
+
+
+//         return res.status(200).json({
+
+//             message:
+//                 "Google login successful",
+
+//             token,
+
+//             user: {
+
+//                 id: user._id,
+
+//                 name: user.name,
+
+//                 email: user.email,
+
+//                 role: user.role,
+
+//             },
+
+//         });
+
+//     } catch (error) {
+
+//         console.error(
+//             "Google Login Error:",
+//             error
+//         );
+
+//         return res.status(500).json({
+
+//             message:
+//                 "Google login failed",
+
+//         });
+//     }
+// };
 
 export const forgotPassword = async (req, res) => {
     try {
@@ -1145,34 +1651,36 @@ export const getMyLoginHistory = async (req, res) => {
     }
 };
 
-export const getLoginHistory = async (req, res) => {
-  try {
-    const userId = req.user.id;
 
-    const loginHistory = await LoginHistory.find({
-      user: userId,
-    })
-      .sort({ loginTime: -1 })
-      .select(
-        "browser operatingSystem deviceType ipAddress loginStatus loginTime"
-      );
 
-    return res.status(200).json({
-      success: true,
-      loginHistory,
-    });
-  } catch (error) {
-    console.error(
-      "Get Login History Error:",
-      error
-    );
+// export const getLoginHistory = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
 
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch login history",
-    });
-  }
-};
+//     const loginHistory = await LoginHistory.find({
+//       user: userId,
+//     })
+//       .sort({ loginTime: -1 })
+//       .select(
+//         "browser operatingSystem deviceType ipAddress loginStatus loginTime"
+//       );
+
+//     return res.status(200).json({
+//       success: true,
+//       loginHistory,
+//     });
+//   } catch (error) {
+//     console.error(
+//       "Get Login History Error:",
+//       error
+//     );
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch login history",
+//     });
+//   }
+// };
 
 // import User from "../models/User.js";
 // import LoginHistory from "../models/LoginHistory.js";
