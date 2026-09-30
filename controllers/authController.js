@@ -11,13 +11,13 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 
-
 // =====================================================
 // GOOGLE CLIENT
 // =====================================================
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
+const client = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID
+);
 
 // =====================================================
 // GET LOGIN INFORMATION
@@ -25,7 +25,8 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const getLoginInfo = (req) => {
 
-    const userAgent = req.headers["user-agent"] || "";
+    const userAgent =
+        req.headers["user-agent"] || "";
 
     // -------------------------
     // Browser
@@ -34,15 +35,22 @@ const getLoginInfo = (req) => {
     let browser = "Unknown Browser";
 
     if (/Edg/i.test(userAgent)) {
-        browser = "Microsoft Edge";
-    } else if (/Chrome/i.test(userAgent)) {
-        browser = "Google Chrome";
-    } else if (/Firefox/i.test(userAgent)) {
-        browser = "Mozilla Firefox";
-    } else if (/Safari/i.test(userAgent)) {
-        browser = "Safari";
-    }
 
+        browser = "Microsoft Edge";
+
+    } else if (/Chrome/i.test(userAgent)) {
+
+        browser = "Google Chrome";
+
+    } else if (/Firefox/i.test(userAgent)) {
+
+        browser = "Mozilla Firefox";
+
+    } else if (/Safari/i.test(userAgent)) {
+
+        browser = "Safari";
+
+    }
 
     // -------------------------
     // Operating System
@@ -51,17 +59,26 @@ const getLoginInfo = (req) => {
     let operatingSystem = "Unknown OS";
 
     if (/Windows/i.test(userAgent)) {
-        operatingSystem = "Windows";
-    } else if (/Mac OS/i.test(userAgent)) {
-        operatingSystem = "Mac OS";
-    } else if (/Android/i.test(userAgent)) {
-        operatingSystem = "Android";
-    } else if (/iPhone|iPad/i.test(userAgent)) {
-        operatingSystem = "iOS";
-    } else if (/Linux/i.test(userAgent)) {
-        operatingSystem = "Linux";
-    }
 
+        operatingSystem = "Windows";
+
+    } else if (/Mac OS/i.test(userAgent)) {
+
+        operatingSystem = "Mac OS";
+
+    } else if (/Android/i.test(userAgent)) {
+
+        operatingSystem = "Android";
+
+    } else if (/iPhone|iPad/i.test(userAgent)) {
+
+        operatingSystem = "iOS";
+
+    } else if (/Linux/i.test(userAgent)) {
+
+        operatingSystem = "Linux";
+
+    }
 
     // -------------------------
     // Device Type
@@ -70,21 +87,25 @@ const getLoginInfo = (req) => {
     let deviceType = "desktop";
 
     if (/Mobile|Android|iPhone/i.test(userAgent)) {
-        deviceType = "mobile";
-    } else if (/iPad|Tablet/i.test(userAgent)) {
-        deviceType = "tablet";
-    }
 
+        deviceType = "mobile";
+
+    } else if (/iPad|Tablet/i.test(userAgent)) {
+
+        deviceType = "tablet";
+
+    }
 
     // -------------------------
     // IP Address
     // -------------------------
 
     const ipAddress =
-        req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+        req.headers["x-forwarded-for"]
+            ?.split(",")[0]
+            ?.trim() ||
         req.socket.remoteAddress ||
         "Unknown";
-
 
     return {
         browser,
@@ -94,7 +115,6 @@ const getLoginInfo = (req) => {
     };
 };
 
-
 // =====================================================
 // CHECK MOBILE LOGIN TIME
 // 10:00 AM - 1:00 PM IST
@@ -102,28 +122,33 @@ const getLoginInfo = (req) => {
 
 const checkMobileLoginTime = () => {
 
-    const indiaTime = new Date().toLocaleString("en-IN", {
-        timeZone: "Asia/Kolkata",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-    });
+    const indiaTime =
+        new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        });
 
-    const [hour, minute] = indiaTime
-        .split(":")
-        .map(Number);
+    const [hour, minute] =
+        indiaTime
+            .split(":")
+            .map(Number);
 
-    const currentMinutes = hour * 60 + minute;
+    const currentMinutes =
+        hour * 60 + minute;
 
-    const startTime = 10 * 60; // 10:00 AM
-    const endTime = 13 * 60;   // 1:00 PM
+    const startTime =
+        10 * 60;
+
+    const endTime =
+        13 * 60;
 
     return (
         currentMinutes >= startTime &&
         currentMinutes < endTime
     );
 };
-
 
 // =====================================================
 // REGISTER
@@ -140,53 +165,55 @@ export const register = async (req, res) => {
             phone,
         } = req.body;
 
-
         if (!name || !email || !password) {
 
             return res.status(400).json({
-                message: "Name, email and password are required",
+                message:
+                    "Name, email and password are required",
             });
         }
 
-
-        const existingUser = await User.findOne({
-            email,
-        });
-
+        const existingUser =
+            await User.findOne({
+                email,
+            });
 
         if (existingUser) {
 
             return res.status(400).json({
-                message: "User already exists",
+                message:
+                    "User already exists",
             });
         }
 
+        const hashedPassword =
+            await bcrypt.hash(
+                password,
+                10
+            );
 
-        const hashedPassword = await bcrypt.hash(
-            password,
-            10
-        );
+        const user =
+            await User.create({
 
+                name,
+                email,
+                password: hashedPassword,
+                phone,
 
-        const user = await User.create({
-
-            name,
-            email,
-            password: hashedPassword,
-            phone,
-
-        });
-
+            });
 
         return res.status(201).json({
 
-            message: "Registration successful",
+            message:
+                "Registration successful",
 
             user: {
+
                 id: user._id,
                 name: user.name,
                 email: user.email,
                 role: user.role,
+
             },
 
         });
@@ -199,14 +226,16 @@ export const register = async (req, res) => {
         );
 
         return res.status(500).json({
-            message: "Something went wrong",
+
+            message:
+                "Something went wrong",
+
         });
     }
 };
 
-
 // =====================================================
-// LOGIN
+// NORMAL LOGIN
 // =====================================================
 
 export const login = async (req, res) => {
@@ -217,7 +246,6 @@ export const login = async (req, res) => {
             email,
             password,
         } = req.body;
-
 
         // ---------------------------------------------
         // Get login information
@@ -230,7 +258,6 @@ export const login = async (req, res) => {
             ipAddress,
         } = getLoginInfo(req);
 
-
         // ---------------------------------------------
         // MOBILE LOGIN TIME RESTRICTION
         // ---------------------------------------------
@@ -239,7 +266,6 @@ export const login = async (req, res) => {
 
             const allowedTime =
                 checkMobileLoginTime();
-
 
             if (!allowedTime) {
 
@@ -252,59 +278,58 @@ export const login = async (req, res) => {
             }
         }
 
-
         // ---------------------------------------------
         // Find User
         // ---------------------------------------------
 
-        const user = await User.findOne({
-            email,
-        });
-
+        const user =
+            await User.findOne({
+                email,
+            });
 
         if (!user) {
 
             return res.status(404).json({
-                message: "User not found",
+
+                message:
+                    "User not found",
+
             });
         }
-
 
         // ---------------------------------------------
         // Check Password
         // ---------------------------------------------
 
-        const isMatch = await bcrypt.compare(
-            password,
-            user.password
-        );
-
+        const isMatch =
+            await bcrypt.compare(
+                password,
+                user.password
+            );
 
         if (!isMatch) {
 
-            // Save failed login
             await LoginHistory.create({
 
                 user: user._id,
 
                 browser,
-
                 operatingSystem,
-
                 deviceType,
-
                 ipAddress,
 
-                loginStatus: "failed",
+                loginStatus:
+                    "failed",
 
             });
-
 
             return res.status(400).json({
-                message: "Invalid password",
+
+                message:
+                    "Invalid password",
+
             });
         }
-
 
         // ---------------------------------------------
         // CHROME LOGIN → OTP REQUIRED
@@ -312,53 +337,53 @@ export const login = async (req, res) => {
 
         if (browser === "Google Chrome") {
 
-            const otp = Math.floor(
-                100000 +
-                Math.random() * 900000
-            ).toString();
+            const otp =
+                Math.floor(
+                    100000 +
+                    Math.random() * 900000
+                ).toString();
 
+            const expiresAt =
+                new Date(
+                    Date.now() +
+                    5 * 60 * 1000
+                );
 
-            const expiresAt = new Date(
-                Date.now() +
-                5 * 60 * 1000
-            );
-
-
-            // Delete previous OTP
+            // Delete previous OTPs
             await LoginOtp.deleteMany({
 
                 userId: user._id,
-
                 email: user.email,
 
             });
 
-
-            // Create new OTP
+            // Save new OTP
             await LoginOtp.create({
 
                 userId: user._id,
-
                 email: user.email,
-
                 otp,
-
                 expiresAt,
-
                 verified: false,
 
             });
 
+            console.log(
+                "🔐 Login OTP generated for:",
+                user.email
+            );
 
-            // Send OTP
             const emailSent =
                 await sendOTPEmail(
                     user.email,
                     otp
                 );
 
-
             if (!emailSent) {
+
+                console.error(
+                    "❌ Login OTP email failed"
+                );
 
                 return res.status(500).json({
 
@@ -368,21 +393,26 @@ export const login = async (req, res) => {
                 });
             }
 
+            console.log(
+                "✅ Login OTP sent successfully"
+            );
 
             return res.status(200).json({
 
                 message:
                     "Login OTP sent successfully",
 
-                requiresOTP: true,
+                requiresOTP:
+                    true,
 
-                email: user.email,
+                email:
+                    user.email,
 
-                userId: user._id,
+                userId:
+                    user._id,
 
             });
         }
-
 
         // ---------------------------------------------
         // NORMAL LOGIN
@@ -393,49 +423,52 @@ export const login = async (req, res) => {
             user: user._id,
 
             browser,
-
             operatingSystem,
-
             deviceType,
-
             ipAddress,
 
-            loginStatus: "success",
+            loginStatus:
+                "success",
 
         });
 
+        const token =
+            jwt.sign(
 
-        const token = jwt.sign(
+                {
+                    id: user._id,
+                    role: user.role,
+                },
 
-            {
-                id: user._id,
-                role: user.role,
-            },
+                process.env.JWT_SECRET,
 
-            process.env.JWT_SECRET,
+                {
+                    expiresIn:
+                        "7d",
+                }
 
-            {
-                expiresIn: "7d",
-            }
-
-        );
-
+            );
 
         return res.status(200).json({
 
-            message: "Login successful",
+            message:
+                "Login successful",
 
             token,
 
             user: {
 
-                id: user._id,
+                id:
+                    user._id,
 
-                name: user.name,
+                name:
+                    user.name,
 
-                email: user.email,
+                email:
+                    user.email,
 
-                role: user.role,
+                role:
+                    user.role,
 
             },
 
@@ -449,11 +482,13 @@ export const login = async (req, res) => {
         );
 
         return res.status(500).json({
-            message: error.message,
+
+            message:
+                "Something went wrong",
+
         });
     }
 };
-
 
 // =====================================================
 // VERIFY LOGIN OTP
@@ -468,7 +503,6 @@ export const verifyLoginOTP = async (req, res) => {
             otp,
         } = req.body;
 
-
         if (!userId || !otp) {
 
             return res.status(400).json({
@@ -479,48 +513,45 @@ export const verifyLoginOTP = async (req, res) => {
             });
         }
 
-
         // ---------------------------------------------
-        // Find OTP
+        // Find latest valid OTP
         // ---------------------------------------------
 
         const otpRecord =
             await LoginOtp.findOne({
 
                 userId,
-
-                otp,
-
+                otp: String(otp),
                 verified: false,
 
             }).sort({
-                createdAt: -1,
-            });
 
+                createdAt: -1,
+
+            });
 
         if (!otpRecord) {
 
             return res.status(400).json({
 
-                message: "Invalid OTP",
+                message:
+                    "Invalid OTP",
 
             });
         }
-
 
         // ---------------------------------------------
         // Check Expiry
         // ---------------------------------------------
 
         if (
-            otpRecord.expiresAt <
-            new Date()
+            !otpRecord.expiresAt ||
+            otpRecord.expiresAt < new Date()
         ) {
 
             await LoginOtp.findByIdAndDelete(
                 otpRecord._id
             );
-
 
             return res.status(400).json({
 
@@ -530,34 +561,33 @@ export const verifyLoginOTP = async (req, res) => {
             });
         }
 
-
-        // ---------------------------------------------
-        // Mark OTP Verified
-        // ---------------------------------------------
-
-        otpRecord.verified = true;
-
-        await otpRecord.save();
-
-
         // ---------------------------------------------
         // Get User
         // ---------------------------------------------
 
-        const user = await User.findById(
-            userId
-        );
-
+        const user =
+            await User.findById(
+                userId
+            );
 
         if (!user) {
 
             return res.status(404).json({
 
-                message: "User not found",
+                message:
+                    "User not found",
 
             });
         }
 
+        // ---------------------------------------------
+        // Mark OTP Verified
+        // ---------------------------------------------
+
+        otpRecord.verified =
+            true;
+
+        await otpRecord.save();
 
         // ---------------------------------------------
         // Get Login Information
@@ -570,47 +600,48 @@ export const verifyLoginOTP = async (req, res) => {
             ipAddress,
         } = getLoginInfo(req);
 
-
         // ---------------------------------------------
         // Save Successful Login
         // ---------------------------------------------
 
         await LoginHistory.create({
 
-            user: user._id,
+            user:
+                user._id,
 
             browser,
-
             operatingSystem,
-
             deviceType,
-
             ipAddress,
 
-            loginStatus: "success",
+            loginStatus:
+                "success",
 
         });
-
 
         // ---------------------------------------------
         // Generate JWT
         // ---------------------------------------------
 
-        const token = jwt.sign(
+        const token =
+            jwt.sign(
 
-            {
-                id: user._id,
-                role: user.role,
-            },
+                {
+                    id:
+                        user._id,
 
-            process.env.JWT_SECRET,
+                    role:
+                        user.role,
+                },
 
-            {
-                expiresIn: "7d",
-            }
+                process.env.JWT_SECRET,
 
-        );
+                {
+                    expiresIn:
+                        "7d",
+                }
 
+            );
 
         return res.status(200).json({
 
@@ -621,13 +652,17 @@ export const verifyLoginOTP = async (req, res) => {
 
             user: {
 
-                id: user._id,
+                id:
+                    user._id,
 
-                name: user.name,
+                name:
+                    user.name,
 
-                email: user.email,
+                email:
+                    user.email,
 
-                role: user.role,
+                role:
+                    user.role,
 
             },
 
@@ -649,7 +684,6 @@ export const verifyLoginOTP = async (req, res) => {
     }
 };
 
-
 // =====================================================
 // GOOGLE LOGIN
 // =====================================================
@@ -658,26 +692,24 @@ export const googleLogin = async (req, res) => {
 
     try {
 
-        // =====================================================
-        // 1. API HIT CHECK
-        // =====================================================
-
-        console.log("🔥 GOOGLE LOGIN API HIT");
-
         console.log(
-            "Credential received:",
-            !!req.body?.credential
+            "🔥 GOOGLE LOGIN API HIT"
         );
 
+        // =====================================================
+        // 1. GET CREDENTIAL
+        // =====================================================
 
         const {
             credential,
-        } = req.body;
+        } = req.body || {};
 
+        console.log(
+            "Credential received:",
+            !!credential
+        );
 
         if (!credential) {
-
-            console.log("❌ Google credential missing");
 
             return res.status(400).json({
 
@@ -687,12 +719,9 @@ export const googleLogin = async (req, res) => {
             });
         }
 
-
         // =====================================================
         // 2. GET LOGIN INFORMATION
         // =====================================================
-
-        console.log("🔍 Getting login information...");
 
         const {
             browser,
@@ -701,12 +730,25 @@ export const googleLogin = async (req, res) => {
             ipAddress,
         } = getLoginInfo(req);
 
+        console.log(
+            "🌐 Browser:",
+            browser
+        );
 
-        console.log("🌐 Browser:", browser);
-        console.log("💻 Operating System:", operatingSystem);
-        console.log("📱 Device Type:", deviceType);
-        console.log("🌍 IP Address:", ipAddress);
+        console.log(
+            "💻 OS:",
+            operatingSystem
+        );
 
+        console.log(
+            "📱 Device:",
+            deviceType
+        );
+
+        console.log(
+            "🌍 IP:",
+            ipAddress
+        );
 
         // =====================================================
         // 3. MOBILE TIME RESTRICTION
@@ -714,23 +756,15 @@ export const googleLogin = async (req, res) => {
 
         if (deviceType === "mobile") {
 
-            console.log("📱 Mobile device detected");
-
             const allowedTime =
                 checkMobileLoginTime();
-
 
             console.log(
                 "⏰ Mobile login allowed:",
                 allowedTime
             );
 
-
             if (!allowedTime) {
-
-                console.log(
-                    "❌ Mobile login blocked due to time restriction"
-                );
 
                 return res.status(403).json({
 
@@ -741,36 +775,51 @@ export const googleLogin = async (req, res) => {
             }
         }
 
-
         // =====================================================
         // 4. VERIFY GOOGLE TOKEN
         // =====================================================
 
-        console.log("🔐 Verifying Google token...");
-
         console.log(
-            "Google Client ID exists:",
-            !!process.env.GOOGLE_CLIENT_ID
+            "🔐 Verifying Google token..."
         );
 
+        if (!process.env.GOOGLE_CLIENT_ID) {
+
+            console.error(
+                "❌ GOOGLE_CLIENT_ID is missing"
+            );
+
+            return res.status(500).json({
+
+                message:
+                    "Google Client ID is not configured",
+
+            });
+        }
 
         const ticket =
             await client.verifyIdToken({
 
-                idToken: credential,
+                idToken:
+                    credential,
 
                 audience:
                     process.env.GOOGLE_CLIENT_ID,
 
             });
 
-
-        console.log("✅ Google token verified successfully");
-
-
         const payload =
             ticket.getPayload();
 
+        if (!payload) {
+
+            return res.status(400).json({
+
+                message:
+                    "Invalid Google token",
+
+            });
+        }
 
         const {
             email,
@@ -778,29 +827,34 @@ export const googleLogin = async (req, res) => {
             picture,
         } = payload;
 
+        if (!email) {
 
-        console.log("👤 Google User Email:", email);
-        console.log("👤 Google User Name:", name);
+            return res.status(400).json({
 
+                message:
+                    "Google account email not found",
+
+            });
+        }
+
+        console.log(
+            "👤 Google Email:",
+            email
+        );
+
+        console.log(
+            "👤 Google Name:",
+            name
+        );
 
         // =====================================================
         // 5. FIND USER
         // =====================================================
 
-        console.log("🔎 Searching user in MongoDB...");
-
-
         let user =
             await User.findOne({
                 email,
             });
-
-
-        console.log(
-            "👤 User found:",
-            !!user
-        );
-
 
         // =====================================================
         // 6. CREATE USER IF NOT EXISTS
@@ -809,76 +863,71 @@ export const googleLogin = async (req, res) => {
         if (!user) {
 
             console.log(
-                "🆕 User does not exist. Creating new user..."
+                "🆕 Creating Google user..."
             );
 
+            user =
+                await User.create({
 
-            user = await User.create({
+                    name:
+                        name || "Google User",
 
-                name,
+                    email,
 
-                email,
+                    profilePhoto:
+                        picture,
 
-                profilePhoto:
-                    picture,
-
-            });
-
+                });
 
             console.log(
-                "✅ New user created:",
+                "✅ Google user created:",
                 user._id
             );
 
         } else {
 
             console.log(
-                "✅ Existing user found:",
+                "✅ Existing user:",
                 user._id
             );
 
         }
 
-
         // =====================================================
-        // 7. CHROME → OTP LOGIN
+        // 7. CHROME → OTP
         // =====================================================
 
-        if (browser === "Google Chrome" || 
-              browser === "Chrome" ||
-    browser?.toLowerCase() === "chrome"
-        ) {
+        const isChrome =
+            browser === "Google Chrome";
+
+        console.log(
+            "🌐 Chrome detected:",
+            isChrome
+        );
+
+        if (isChrome) {
 
             console.log(
-                "🌐 Google Chrome detected"
+                "🔐 STARTING GOOGLE LOGIN OTP FLOW"
             );
 
-            console.log(
-                "🔐 Starting OTP login flow..."
-            );
-
-
-            // -------------------------------------------------
+            // ---------------------------------------------
             // Generate OTP
-            // -------------------------------------------------
+            // ---------------------------------------------
 
-            const otp = Math.floor(
-
-                100000 +
-                Math.random() * 900000
-
-            ).toString();
-
+            const otp =
+                Math.floor(
+                    100000 +
+                    Math.random() * 900000
+                ).toString();
 
             console.log(
-                "🔢 OTP generated:",
-                otp
+                "🔢 OTP generated"
             );
 
-
-            // -------------------------------------------------
-            // OTP Expiry - 5 Minutes
-            // -------------------------------------------------
+            // ---------------------------------------------
+            // OTP Expiry
+            // ---------------------------------------------
 
             const expiresAt =
                 new Date(
@@ -886,74 +935,57 @@ export const googleLogin = async (req, res) => {
                     5 * 60 * 1000
                 );
 
-
-            console.log(
-                "⏰ OTP expires at:",
-                expiresAt
-            );
-
-
-            // -------------------------------------------------
-            // Delete Previous OTP
-            // -------------------------------------------------
-
-            console.log(
-                "🗑️ Deleting previous OTPs..."
-            );
-
+            // ---------------------------------------------
+            // Delete Old OTPs
+            // ---------------------------------------------
 
             await LoginOtp.deleteMany({
 
-                userId: user._id,
+                userId:
+                    user._id,
 
-                email: user.email,
+                email:
+                    user.email,
 
             });
 
-
             console.log(
-                "✅ Previous OTPs deleted"
+                "🗑️ Old OTPs deleted"
             );
 
-
-            // -------------------------------------------------
+            // ---------------------------------------------
             // Save New OTP
-            // -------------------------------------------------
-
-            console.log(
-                "💾 Saving new OTP to MongoDB..."
-            );
-
+            // ---------------------------------------------
 
             await LoginOtp.create({
 
-                userId: user._id,
+                userId:
+                    user._id,
 
-                email: user.email,
+                email:
+                    user.email,
 
                 otp,
 
                 expiresAt,
 
-                verified: false,
+                verified:
+                    false,
 
             });
 
-
             console.log(
-                "✅ OTP saved to MongoDB"
+                "💾 New OTP saved"
             );
 
-
-            // -------------------------------------------------
-            // Send OTP Email
-            // -------------------------------------------------
+            // ---------------------------------------------
+            // SEND OTP EMAIL
+            // ---------------------------------------------
 
             console.log(
-                "📧 Sending OTP email to:",
+                "📧 Sending OTP to:",
                 user.email
             );
-
 
             const emailSent =
                 await sendOTPEmail(
@@ -961,23 +993,33 @@ export const googleLogin = async (req, res) => {
                     otp
                 );
 
-
             console.log(
-                "📨 Email send result:",
+                "📨 Email result:",
                 emailSent
             );
 
-
-            // -------------------------------------------------
-            // Email Failed
-            // -------------------------------------------------
+            // ---------------------------------------------
+            // EMAIL FAILED
+            // ---------------------------------------------
 
             if (!emailSent) {
 
-                console.log(
-                    "❌ Failed to send login OTP"
+                console.error(
+                    "❌ OTP EMAIL FAILED"
                 );
 
+                // Delete OTP because email was not sent
+                await LoginOtp.deleteMany({
+
+                    userId:
+                        user._id,
+
+                    email:
+                        user.email,
+
+                    otp,
+
+                });
 
                 return res.status(500).json({
 
@@ -987,22 +1029,21 @@ export const googleLogin = async (req, res) => {
                 });
             }
 
-
-            // -------------------------------------------------
-            // OTP Successfully Sent
-            // -------------------------------------------------
+            // ---------------------------------------------
+            // EMAIL SUCCESS
+            // ---------------------------------------------
 
             console.log(
                 "✅ LOGIN OTP SENT SUCCESSFULLY"
             );
-
 
             return res.status(200).json({
 
                 message:
                     "Login OTP sent successfully",
 
-                requiresOTP: true,
+                requiresOTP:
+                    true,
 
                 email:
                     user.email,
@@ -1013,89 +1054,60 @@ export const googleLogin = async (req, res) => {
             });
         }
 
-
         // =====================================================
         // 8. NORMAL GOOGLE LOGIN
         // =====================================================
 
         console.log(
-            "🌐 Browser is not Chrome"
+            "🌐 Non-Chrome browser"
         );
-
-        console.log(
-            "➡️ Proceeding with normal Google login"
-        );
-
-
-        // -----------------------------------------------------
-        // Login History
-        // -----------------------------------------------------
-
-        console.log(
-            "📝 Saving login history..."
-        );
-
 
         await LoginHistory.create({
 
-            user: user._id,
+            user:
+                user._id,
 
             browser,
-
             operatingSystem,
-
             deviceType,
-
             ipAddress,
 
-            loginStatus: "success",
+            loginStatus:
+                "success",
 
         });
-
-
-        console.log(
-            "✅ Login history saved"
-        );
-
 
         // =====================================================
         // 9. GENERATE JWT
         // =====================================================
 
-        console.log(
-            "🔑 Generating JWT token..."
-        );
+        const token =
+            jwt.sign(
 
+                {
+                    id:
+                        user._id,
 
-        const token = jwt.sign(
+                    role:
+                        user.role,
+                },
 
-            {
-                id: user._id,
-                role: user.role,
-            },
+                process.env.JWT_SECRET,
 
-            process.env.JWT_SECRET,
+                {
+                    expiresIn:
+                        "7d",
+                }
 
-            {
-                expiresIn: "7d",
-            }
-
-        );
-
-
-        console.log(
-            "✅ JWT generated successfully"
-        );
-
+            );
 
         // =====================================================
-        // 10. SUCCESS RESPONSE
+        // 10. SUCCESS
         // =====================================================
 
         console.log(
             "🎉 GOOGLE LOGIN SUCCESSFUL"
         );
-
 
         return res.status(200).json({
 
@@ -1122,15 +1134,10 @@ export const googleLogin = async (req, res) => {
 
         });
 
-
     } catch (error) {
 
-        // =====================================================
-        // ERROR
-        // =====================================================
-
         console.error(
-            "❌❌❌ GOOGLE LOGIN ERROR ❌❌❌"
+            "❌ GOOGLE LOGIN ERROR"
         );
 
         console.error(
@@ -1148,7 +1155,6 @@ export const googleLogin = async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
 
             message:
@@ -1158,33 +1164,519 @@ export const googleLogin = async (req, res) => {
                 error.message,
 
         });
-
     }
-
 };
 
-// export const googleLogin = async (req, res) => {
+// =====================================================
+// FORGOT PASSWORD
+// =====================================================
+
+export const forgotPassword = async (req, res) => {
+
+    try {
+
+        console.log(
+            "FORGOT PASSWORD BODY:",
+            req.body
+        );
+
+        const {
+            identifier,
+        } = req.body;
+
+        // -------------------------------------------------
+        // CHECK EMAIL / PHONE
+        // -------------------------------------------------
+
+        if (
+            !identifier ||
+            !identifier.trim()
+        ) {
+
+            return res.status(400).json({
+
+                message:
+                    "Email or phone is required",
+
+            });
+        }
+
+        const value =
+            identifier.trim();
+
+        // -------------------------------------------------
+        // FIND USER
+        // -------------------------------------------------
+
+        const user =
+            await User.findOne({
+
+                $or: [
+
+                    {
+                        email:
+                            value,
+                    },
+
+                    {
+                        phone:
+                            value,
+                    },
+
+                ],
+
+            });
+
+        if (!user) {
+
+            return res.status(404).json({
+
+                message:
+                    "User not found",
+
+            });
+        }
+
+        // -------------------------------------------------
+        // CHECK 24 HOURS LIMIT
+        // -------------------------------------------------
+
+        if (user.lastPasswordResetAt) {
+
+            const lastReset =
+                new Date(
+                    user.lastPasswordResetAt
+                ).getTime();
+
+            const now =
+                Date.now();
+
+            const twentyFourHours =
+                24 * 60 * 60 * 1000;
+
+            const timePassed =
+                now - lastReset;
+
+            if (
+                timePassed <
+                twentyFourHours
+            ) {
+
+                return res.status(429).json({
+
+                    message:
+                        "You can reset your password only once every 24 hours.",
+
+                });
+            }
+        }
+
+        // -------------------------------------------------
+        // GENERATE NEW PASSWORD
+        // -------------------------------------------------
+
+        const characters =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        let newPassword = "";
+
+        for (
+            let i = 0;
+            i < 6;
+            i++
+        ) {
+
+            newPassword +=
+                characters[
+                    Math.floor(
+                        Math.random() *
+                        characters.length
+                    )
+                ];
+        }
+
+        // -------------------------------------------------
+        // HASH PASSWORD
+        // -------------------------------------------------
+
+        const hashedPassword =
+            await bcrypt.hash(
+                newPassword,
+                10
+            );
+
+        // -------------------------------------------------
+        // SEND PASSWORD EMAIL
+        // -------------------------------------------------
+
+        const emailSent =
+            await sendForgotPasswordEmail(
+                user.email,
+                newPassword
+            );
+
+        if (!emailSent) {
+
+            return res.status(500).json({
+
+                message:
+                    "Failed to send password email",
+
+            });
+        }
+
+        // -------------------------------------------------
+        // UPDATE PASSWORD
+        // -------------------------------------------------
+
+        user.password =
+            hashedPassword;
+
+        user.lastPasswordResetAt =
+            new Date();
+
+        await user.save();
+
+        // -------------------------------------------------
+        // SUCCESS
+        // -------------------------------------------------
+
+        return res.status(200).json({
+
+            message:
+                "New password sent successfully",
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Forgot Password Error:",
+            error
+        );
+
+        return res.status(500).json({
+
+            message:
+                "Something went wrong",
+
+        });
+    }
+};
+
+// =====================================================
+// GET ALL USERS
+// =====================================================
+
+export const getAllUsers = async (req, res) => {
+
+    try {
+
+        const users =
+            await User.find()
+                .select("-password");
+
+        return res.status(200).json({
+
+            count:
+                users.length,
+
+            users,
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Get All Users Error:",
+            error
+        );
+
+        return res.status(500).json({
+
+            message:
+                "Something went wrong",
+
+        });
+    }
+};
+
+// =====================================================
+// GET MY LOGIN HISTORY
+// =====================================================
+
+export const getMyLoginHistory = async (req, res) => {
+
+    try {
+
+        const userId =
+            req.user.id;
+
+        const loginHistory =
+            await LoginHistory.find({
+
+                user:
+                    userId,
+
+            })
+                .sort({
+                    loginTime:
+                        -1,
+                })
+                .select(
+                    "browser operatingSystem deviceType ipAddress loginStatus loginTime"
+                );
+
+        return res.status(200).json({
+
+            count:
+                loginHistory.length,
+
+            loginHistory,
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Get My Login History Error:",
+            error
+        );
+
+        return res.status(500).json({
+
+            message:
+                "Something went wrong",
+
+        });
+    }
+};
+
+
+
+// import User from "../models/User.js";
+// import LoginHistory from "../models/LoginHistory.js";
+// import LoginOtp from "../models/LoginOtp.js";
+
+// import {
+//     sendOTPEmail,
+//     sendForgotPasswordEmail,
+// } from "../services/emailService.js";
+
+// import bcrypt from "bcrypt";
+// import jwt from "jsonwebtoken";
+// import { OAuth2Client } from "google-auth-library";
+
+
+// // =====================================================
+// // GOOGLE CLIENT
+// // =====================================================
+
+// const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+
+// // =====================================================
+// // GET LOGIN INFORMATION
+// // =====================================================
+
+// const getLoginInfo = (req) => {
+
+//     const userAgent = req.headers["user-agent"] || "";
+
+//     // -------------------------
+//     // Browser
+//     // -------------------------
+
+//     let browser = "Unknown Browser";
+
+//     if (/Edg/i.test(userAgent)) {
+//         browser = "Microsoft Edge";
+//     } else if (/Chrome/i.test(userAgent)) {
+//         browser = "Google Chrome";
+//     } else if (/Firefox/i.test(userAgent)) {
+//         browser = "Mozilla Firefox";
+//     } else if (/Safari/i.test(userAgent)) {
+//         browser = "Safari";
+//     }
+
+
+//     // -------------------------
+//     // Operating System
+//     // -------------------------
+
+//     let operatingSystem = "Unknown OS";
+
+//     if (/Windows/i.test(userAgent)) {
+//         operatingSystem = "Windows";
+//     } else if (/Mac OS/i.test(userAgent)) {
+//         operatingSystem = "Mac OS";
+//     } else if (/Android/i.test(userAgent)) {
+//         operatingSystem = "Android";
+//     } else if (/iPhone|iPad/i.test(userAgent)) {
+//         operatingSystem = "iOS";
+//     } else if (/Linux/i.test(userAgent)) {
+//         operatingSystem = "Linux";
+//     }
+
+
+//     // -------------------------
+//     // Device Type
+//     // -------------------------
+
+//     let deviceType = "desktop";
+
+//     if (/Mobile|Android|iPhone/i.test(userAgent)) {
+//         deviceType = "mobile";
+//     } else if (/iPad|Tablet/i.test(userAgent)) {
+//         deviceType = "tablet";
+//     }
+
+
+//     // -------------------------
+//     // IP Address
+//     // -------------------------
+
+//     const ipAddress =
+//         req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+//         req.socket.remoteAddress ||
+//         "Unknown";
+
+
+//     return {
+//         browser,
+//         operatingSystem,
+//         deviceType,
+//         ipAddress,
+//     };
+// };
+
+
+// // =====================================================
+// // CHECK MOBILE LOGIN TIME
+// // 10:00 AM - 1:00 PM IST
+// // =====================================================
+
+// const checkMobileLoginTime = () => {
+
+//     const indiaTime = new Date().toLocaleString("en-IN", {
+//         timeZone: "Asia/Kolkata",
+//         hour: "2-digit",
+//         minute: "2-digit",
+//         hour12: false,
+//     });
+
+//     const [hour, minute] = indiaTime
+//         .split(":")
+//         .map(Number);
+
+//     const currentMinutes = hour * 60 + minute;
+
+//     const startTime = 10 * 60; // 10:00 AM
+//     const endTime = 13 * 60;   // 1:00 PM
+
+//     return (
+//         currentMinutes >= startTime &&
+//         currentMinutes < endTime
+//     );
+// };
+
+
+// // =====================================================
+// // REGISTER
+// // =====================================================
+
+// export const register = async (req, res) => {
 
 //     try {
 
 //         const {
-//             credential,
+//             name,
+//             email,
+//             password,
+//             phone,
 //         } = req.body;
 
 
-//         if (!credential) {
+//         if (!name || !email || !password) {
 
 //             return res.status(400).json({
-
-//                 message:
-//                     "Google credential is required",
-
+//                 message: "Name, email and password are required",
 //             });
 //         }
 
 
+//         const existingUser = await User.findOne({
+//             email,
+//         });
+
+
+//         if (existingUser) {
+
+//             return res.status(400).json({
+//                 message: "User already exists",
+//             });
+//         }
+
+
+//         const hashedPassword = await bcrypt.hash(
+//             password,
+//             10
+//         );
+
+
+//         const user = await User.create({
+
+//             name,
+//             email,
+//             password: hashedPassword,
+//             phone,
+
+//         });
+
+
+//         return res.status(201).json({
+
+//             message: "Registration successful",
+
+//             user: {
+//                 id: user._id,
+//                 name: user.name,
+//                 email: user.email,
+//                 role: user.role,
+//             },
+
+//         });
+
+//     } catch (error) {
+
+//         console.error(
+//             "Register Error:",
+//             error
+//         );
+
+//         return res.status(500).json({
+//             message: "Something went wrong",
+//         });
+//     }
+// };
+
+
+// // =====================================================
+// // LOGIN
+// // =====================================================
+
+// export const login = async (req, res) => {
+
+//     try {
+
+//         const {
+//             email,
+//             password,
+//         } = req.body;
+
+
 //         // ---------------------------------------------
-//         // Get Login Information
+//         // Get login information
 //         // ---------------------------------------------
 
 //         const {
@@ -1196,7 +1688,7 @@ export const googleLogin = async (req, res) => {
 
 
 //         // ---------------------------------------------
-//         // Mobile Time Restriction
+//         // MOBILE LOGIN TIME RESTRICTION
 //         // ---------------------------------------------
 
 //         if (deviceType === "mobile") {
@@ -1218,81 +1710,77 @@ export const googleLogin = async (req, res) => {
 
 
 //         // ---------------------------------------------
-//         // Verify Google Token
-//         // ---------------------------------------------
-
-//         const ticket =
-//             await client.verifyIdToken({
-
-//                 idToken: credential,
-
-//                 audience:
-//                     process.env.GOOGLE_CLIENT_ID,
-
-//             });
-
-
-//         const payload =
-//             ticket.getPayload();
-
-
-//         const {
-//             email,
-//             name,
-//             picture,
-//         } = payload;
-
-
-//         // ---------------------------------------------
 //         // Find User
 //         // ---------------------------------------------
 
-//         let user =
-//             await User.findOne({
-//                 email,
-//             });
+//         const user = await User.findOne({
+//             email,
+//         });
 
-
-//         // ---------------------------------------------
-//         // Create User if not exists
-//         // ---------------------------------------------
 
 //         if (!user) {
 
-//             user = await User.create({
-
-//                 name,
-
-//                 email,
-
-//                 profilePhoto:
-//                     picture,
-
+//             return res.status(404).json({
+//                 message: "User not found",
 //             });
 //         }
 
 
 //         // ---------------------------------------------
-//         // Chrome → OTP
+//         // Check Password
+//         // ---------------------------------------------
+
+//         const isMatch = await bcrypt.compare(
+//             password,
+//             user.password
+//         );
+
+
+//         if (!isMatch) {
+
+//             // Save failed login
+//             await LoginHistory.create({
+
+//                 user: user._id,
+
+//                 browser,
+
+//                 operatingSystem,
+
+//                 deviceType,
+
+//                 ipAddress,
+
+//                 loginStatus: "failed",
+
+//             });
+
+
+//             return res.status(400).json({
+//                 message: "Invalid password",
+//             });
+//         }
+
+
+//         // ---------------------------------------------
+//         // CHROME LOGIN → OTP REQUIRED
 //         // ---------------------------------------------
 
 //         if (browser === "Google Chrome") {
 
 //             const otp = Math.floor(
-
 //                 100000 +
 //                 Math.random() * 900000
-
 //             ).toString();
 
 
-//             const expiresAt =
-//                 new Date(
-//                     Date.now() +
-//                     5 * 60 * 1000
-//                 );
+//             const expiresAt = new Date(
+//                 Date.now() +
+//                 5 * 60 * 1000
+//             );
 
 
+//             // Delete previous OTP
 //             await LoginOtp.deleteMany({
 
 //                 userId: user._id,
@@ -1302,6 +1790,7 @@ export const googleLogin = async (req, res) => {
 //             });
 
 
+//             // Create new OTP
 //             await LoginOtp.create({
 
 //                 userId: user._id,
@@ -1317,6 +1806,7 @@ export const googleLogin = async (req, res) => {
 //             });
 
 
+//             // Send OTP
 //             const emailSent =
 //                 await sendOTPEmail(
 //                     user.email,
@@ -1351,7 +1841,7 @@ export const googleLogin = async (req, res) => {
 
 
 //         // ---------------------------------------------
-//         // Normal Google Login
+//         // NORMAL LOGIN
 //         // ---------------------------------------------
 
 //         await LoginHistory.create({
@@ -1389,8 +1879,7 @@ export const googleLogin = async (req, res) => {
 
 //         return res.status(200).json({
 
-//             message:
-//                 "Google login successful",
+//             message: "Login successful",
 
 //             token,
 
@@ -1411,248 +1900,1215 @@ export const googleLogin = async (req, res) => {
 //     } catch (error) {
 
 //         console.error(
-//             "Google Login Error:",
+//             "Login Error:",
+//             error
+//         );
+
+//         return res.status(500).json({
+//             message: error.message,
+//         });
+//     }
+// };
+
+
+// // =====================================================
+// // VERIFY LOGIN OTP
+// // =====================================================
+
+// export const verifyLoginOTP = async (req, res) => {
+
+//     try {
+
+//         const {
+//             userId,
+//             otp,
+//         } = req.body;
+
+
+//         if (!userId || !otp) {
+
+//             return res.status(400).json({
+
+//                 message:
+//                     "User ID and OTP are required",
+
+//             });
+//         }
+
+
+//         // ---------------------------------------------
+//         // Find OTP
+//         // ---------------------------------------------
+
+//         const otpRecord =
+//             await LoginOtp.findOne({
+
+//                 userId,
+
+//                 otp,
+
+//                 verified: false,
+
+//             }).sort({
+//                 createdAt: -1,
+//             });
+
+
+//         if (!otpRecord) {
+
+//             return res.status(400).json({
+
+//                 message: "Invalid OTP",
+
+//             });
+//         }
+
+
+//         // ---------------------------------------------
+//         // Check Expiry
+//         // ---------------------------------------------
+
+//         if (
+//             otpRecord.expiresAt <
+//             new Date()
+//         ) {
+
+//             await LoginOtp.findByIdAndDelete(
+//                 otpRecord._id
+//             );
+
+
+//             return res.status(400).json({
+
+//                 message:
+//                     "OTP has expired",
+
+//             });
+//         }
+
+
+//         // ---------------------------------------------
+//         // Mark OTP Verified
+//         // ---------------------------------------------
+
+//         otpRecord.verified = true;
+
+//         await otpRecord.save();
+
+
+//         // ---------------------------------------------
+//         // Get User
+//         // ---------------------------------------------
+
+//         const user = await User.findById(
+//             userId
+//         );
+
+
+//         if (!user) {
+
+//             return res.status(404).json({
+
+//                 message: "User not found",
+
+//             });
+//         }
+
+
+//         // ---------------------------------------------
+//         // Get Login Information
+//         // ---------------------------------------------
+
+//         const {
+//             browser,
+//             operatingSystem,
+//             deviceType,
+//             ipAddress,
+//         } = getLoginInfo(req);
+
+
+//         // ---------------------------------------------
+//         // Save Successful Login
+//         // ---------------------------------------------
+
+//         await LoginHistory.create({
+
+//             user: user._id,
+
+//             browser,
+
+//             operatingSystem,
+
+//             deviceType,
+
+//             ipAddress,
+
+//             loginStatus: "success",
+
+//         });
+
+
+//         // ---------------------------------------------
+//         // Generate JWT
+//         // ---------------------------------------------
+
+//         const token = jwt.sign(
+
+//             {
+//                 id: user._id,
+//                 role: user.role,
+//             },
+
+//             process.env.JWT_SECRET,
+
+//             {
+//                 expiresIn: "7d",
+//             }
+
+//         );
+
+
+//         return res.status(200).json({
+
+//             message:
+//                 "Login OTP verified successfully",
+
+//             token,
+
+//             user: {
+
+//                 id: user._id,
+
+//                 name: user.name,
+
+//                 email: user.email,
+
+//                 role: user.role,
+
+//             },
+
+//         });
+
+//     } catch (error) {
+
+//         console.error(
+//             "Verify Login OTP Error:",
 //             error
 //         );
 
 //         return res.status(500).json({
 
 //             message:
-//                 "Google login failed",
+//                 "OTP verification failed",
 
 //         });
 //     }
 // };
 
-export const forgotPassword = async (req, res) => {
-    try {
 
-        console.log("FORGOT PASSWORD BODY:", req.body);
+// // =====================================================
+// // GOOGLE LOGIN
+// // =====================================================
 
-        const { identifier } = req.body;
+// export const googleLogin = async (req, res) => {
 
-        // -------------------------------------------------
-        // CHECK EMAIL / PHONE
-        // -------------------------------------------------
+//     try {
 
-        if (!identifier || !identifier.trim()) {
-            return res.status(400).json({
-                message: "Email or phone is required"
-            });
-        }
+//         // =====================================================
+//         // 1. API HIT CHECK
+//         // =====================================================
 
-        const value = identifier.trim();
+//         console.log("🔥 GOOGLE LOGIN API HIT");
 
-        // -------------------------------------------------
-        // FIND USER
-        // -------------------------------------------------
-
-        const user = await User.findOne({
-            $or: [
-                { email: value },
-                { phone: value }
-            ]
-        });
-
-        if (!user) {
-            return res.status(404).json({
-                message: "User not found"
-            });
-        }
-
-        console.log("User:", user.email);
-        console.log(
-            "Last Password Reset:",
-            user.lastPasswordResetAt
-        );
-
-        // -------------------------------------------------
-        // CHECK 24 HOURS LIMIT
-        // -------------------------------------------------
-
-        if (user.lastPasswordResetAt) {
-
-            const lastReset =
-                new Date(user.lastPasswordResetAt).getTime();
-
-            const now = Date.now();
-
-            const twentyFourHours =
-                24 * 60 * 60 * 1000;
-
-            const timePassed =
-                now - lastReset;
-
-            console.log(
-                "Hours since last reset:",
-                timePassed / (1000 * 60 * 60)
-            );
-
-            // Less than 24 hours
-            if (timePassed < twentyFourHours) {
-
-                return res.status(429).json({
-                    message:
-                        "You can reset your password only once every 24 hours."
-                });
-            }
-        }
-
-        // -------------------------------------------------
-        // GENERATE NEW PASSWORD
-        // -------------------------------------------------
-
-        const characters =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-        let newPassword = "";
-
-        for (let i = 0; i < 6; i++) {
-
-            newPassword +=
-                characters[
-                    Math.floor(
-                        Math.random() * characters.length
-                    )
-                ];
-        }
-
-        // -------------------------------------------------
-        // HASH PASSWORD
-        // -------------------------------------------------
-
-        const hashedPassword =
-            await bcrypt.hash(
-                newPassword,
-                10
-            );
-
-        // -------------------------------------------------
-        // SEND PASSWORD EMAIL
-        // -------------------------------------------------
-
-        const emailSent =
-            await sendForgotPasswordEmail(
-                user.email,
-                newPassword
-            );
-
-        if (!emailSent) {
-
-            return res.status(500).json({
-                message:
-                    "Failed to send password email"
-            });
-        }
-
-        // -------------------------------------------------
-        // UPDATE PASSWORD
-        // -------------------------------------------------
-
-        user.password =
-            hashedPassword;
-
-        // IMPORTANT:
-        // Same field used in limit check
-        user.lastPasswordResetAt =
-            new Date();
-
-        await user.save();
-
-        console.log(
-            "Password reset time saved:",
-            user.lastPasswordResetAt
-        );
-
-        // -------------------------------------------------
-        // SUCCESS
-        // -------------------------------------------------
-
-        return res.status(200).json({
-            message:
-                "New password sent successfully"
-        });
-
-    } catch (error) {
-
-        console.error(
-            "Forgot Password Error:",
-            error
-        );
-
-        return res.status(500).json({
-            message:
-                "Something went wrong"
-        });
-    }
-};
+//         console.log(
+//             "Credential received:",
+//             !!req.body?.credential
+//         );
 
 
-// =====================================================
-// GET ALL USERS
-// =====================================================
-
-export const getAllUsers = async (req, res) => {
-
-    try {
-
-        const users =
-            await User.find()
-                .select("-password");
+//         const {
+//             credential,
+//         } = req.body;
 
 
-        return res.status(200).json({
+//         if (!credential) {
 
-            count: users.length,
+//             console.log("❌ Google credential missing");
 
-            users,
+//             return res.status(400).json({
 
-        });
+//                 message:
+//                     "Google credential is required",
 
-    } catch (error) {
+//             });
+//         }
 
-        console.error(
-            "Get All Users Error:",
-            error
-        );
 
-        return res.status(500).json({
+//         // =====================================================
+//         // 2. GET LOGIN INFORMATION
+//         // =====================================================
 
-            message:
-                "Something went wrong",
+//         console.log("🔍 Getting login information...");
 
-        });
-    }
-};
+//         const {
+//             browser,
+//             operatingSystem,
+//             deviceType,
+//             ipAddress,
+//         } = getLoginInfo(req);
 
-export const getMyLoginHistory = async (req, res) => {
-    try {
-        const userId = req.user.id;
 
-        const loginHistory = await LoginHistory.find({
-            user: userId,
-        })
-            .sort({ loginTime: -1 })
-            .select(
-                "browser operatingSystem deviceType ipAddress loginStatus loginTime"
-            );
+//         console.log("🌐 Browser:", browser);
+//         console.log("💻 Operating System:", operatingSystem);
+//         console.log("📱 Device Type:", deviceType);
+//         console.log("🌍 IP Address:", ipAddress);
 
-        return res.status(200).json({
-            count: loginHistory.length,
-            loginHistory,
-        });
 
-    } catch (error) {
-        console.error(
-            "Get My Login History Error:",
-            error
-        );
+//         // =====================================================
+//         // 3. MOBILE TIME RESTRICTION
+//         // =====================================================
 
-        return res.status(500).json({
-            message: "Something went wrong",
-        });
-    }
-};
+//         if (deviceType === "mobile") {
+
+//             console.log("📱 Mobile device detected");
+
+//             const allowedTime =
+//                 checkMobileLoginTime();
+
+
+//             console.log(
+//                 "⏰ Mobile login allowed:",
+//                 allowedTime
+//             );
+
+
+//             if (!allowedTime) {
+
+//                 console.log(
+//                     "❌ Mobile login blocked due to time restriction"
+//                 );
+
+//                 return res.status(403).json({
+
+//                     message:
+//                         "Mobile login is allowed only between 10:00 AM and 1:00 PM IST",
+
+//                 });
+//             }
+//         }
+
+
+//         // =====================================================
+//         // 4. VERIFY GOOGLE TOKEN
+//         // =====================================================
+
+//         console.log("🔐 Verifying Google token...");
+
+//         console.log(
+//             "Google Client ID exists:",
+//             !!process.env.GOOGLE_CLIENT_ID
+//         );
+
+
+//         const ticket =
+//             await client.verifyIdToken({
+
+//                 idToken: credential,
+
+//                 audience:
+//                     process.env.GOOGLE_CLIENT_ID,
+
+//             });
+
+
+//         console.log("✅ Google token verified successfully");
+
+
+//         const payload =
+//             ticket.getPayload();
+
+
+//         const {
+//             email,
+//             name,
+//             picture,
+//         } = payload;
+
+
+//         console.log("👤 Google User Email:", email);
+//         console.log("👤 Google User Name:", name);
+
+
+//         // =====================================================
+//         // 5. FIND USER
+//         // =====================================================
+
+//         console.log("🔎 Searching user in MongoDB...");
+
+
+//         let user =
+//             await User.findOne({
+//                 email,
+//             });
+
+
+//         console.log(
+//             "👤 User found:",
+//             !!user
+//         );
+
+
+//         // =====================================================
+//         // 6. CREATE USER IF NOT EXISTS
+//         // =====================================================
+
+//         if (!user) {
+
+//             console.log(
+//                 "🆕 User does not exist. Creating new user..."
+//             );
+
+
+//             user = await User.create({
+
+//                 name,
+
+//                 email,
+
+//                 profilePhoto:
+//                     picture,
+
+//             });
+
+
+//             console.log(
+//                 "✅ New user created:",
+//                 user._id
+//             );
+
+//         } else {
+
+//             console.log(
+//                 "✅ Existing user found:",
+//                 user._id
+//             );
+
+//         }
+
+
+//         // =====================================================
+//         // 7. CHROME → OTP LOGIN
+//         // =====================================================
+
+//         if (browser === "Google Chrome" || 
+//               browser === "Chrome" ||
+//     browser?.toLowerCase() === "chrome"
+//         ) {
+
+//             console.log(
+//                 "🌐 Google Chrome detected"
+//             );
+
+//             console.log(
+//                 "🔐 Starting OTP login flow..."
+//             );
+
+
+//             // -------------------------------------------------
+//             // Generate OTP
+//             // -------------------------------------------------
+
+//             const otp = Math.floor(
+
+//                 100000 +
+//                 Math.random() * 900000
+
+//             ).toString();
+
+
+//             console.log(
+//                 "🔢 OTP generated:",
+//                 otp
+//             );
+
+
+//             // -------------------------------------------------
+//             // OTP Expiry - 5 Minutes
+//             // -------------------------------------------------
+
+//             const expiresAt =
+//                 new Date(
+//                     Date.now() +
+//                     5 * 60 * 1000
+//                 );
+
+
+//             console.log(
+//                 "⏰ OTP expires at:",
+//                 expiresAt
+//             );
+
+
+//             // -------------------------------------------------
+//             // Delete Previous OTP
+//             // -------------------------------------------------
+
+//             console.log(
+//                 "🗑️ Deleting previous OTPs..."
+//             );
+
+
+//             await LoginOtp.deleteMany({
+
+//                 userId: user._id,
+
+//                 email: user.email,
+
+//             });
+
+
+//             console.log(
+//                 "✅ Previous OTPs deleted"
+//             );
+
+
+//             // -------------------------------------------------
+//             // Save New OTP
+//             // -------------------------------------------------
+
+//             console.log(
+//                 "💾 Saving new OTP to MongoDB..."
+//             );
+
+
+//             await LoginOtp.create({
+
+//                 userId: user._id,
+
+//                 email: user.email,
+
+//                 otp,
+
+//                 expiresAt,
+
+//                 verified: false,
+
+//             });
+
+
+//             console.log(
+//                 "✅ OTP saved to MongoDB"
+//             );
+
+
+//             // -------------------------------------------------
+//             // Send OTP Email
+//             // -------------------------------------------------
+
+//             console.log(
+//                 "📧 Sending OTP email to:",
+//                 user.email
+//             );
+
+
+//             const emailSent =
+//                 await sendOTPEmail(
+//                     user.email,
+//                     otp
+//                 );
+
+
+//             console.log(
+//                 "📨 Email send result:",
+//                 emailSent
+//             );
+
+
+//             // -------------------------------------------------
+//             // Email Failed
+//             // -------------------------------------------------
+
+//             if (!emailSent) {
+
+//                 console.log(
+//                     "❌ Failed to send login OTP"
+//                 );
+
+
+//                 return res.status(500).json({
+
+//                     message:
+//                         "Failed to send login OTP",
+
+//                 });
+//             }
+
+
+//             // -------------------------------------------------
+//             // OTP Successfully Sent
+//             // -------------------------------------------------
+
+//             console.log(
+//                 "✅ LOGIN OTP SENT SUCCESSFULLY"
+//             );
+
+
+//             return res.status(200).json({
+
+//                 message:
+//                     "Login OTP sent successfully",
+
+//                 requiresOTP: true,
+
+//                 email:
+//                     user.email,
+
+//                 userId:
+//                     user._id,
+
+//             });
+//         }
+
+
+//         // =====================================================
+//         // 8. NORMAL GOOGLE LOGIN
+//         // =====================================================
+
+//         console.log(
+//             "🌐 Browser is not Chrome"
+//         );
+
+//         console.log(
+//             "➡️ Proceeding with normal Google login"
+//         );
+
+
+//         // -----------------------------------------------------
+//         // Login History
+//         // -----------------------------------------------------
+
+//         console.log(
+//             "📝 Saving login history..."
+//         );
+
+
+//         await LoginHistory.create({
+
+//             user: user._id,
+
+//             browser,
+
+//             operatingSystem,
+
+//             deviceType,
+
+//             ipAddress,
+
+//             loginStatus: "success",
+
+//         });
+
+
+//         console.log(
+//             "✅ Login history saved"
+//         );
+
+
+//         // =====================================================
+//         // 9. GENERATE JWT
+//         // =====================================================
+
+//         console.log(
+//             "🔑 Generating JWT token..."
+//         );
+
+
+//         const token = jwt.sign(
+
+//             {
+//                 id: user._id,
+//                 role: user.role,
+//             },
+
+//             process.env.JWT_SECRET,
+
+//             {
+//                 expiresIn: "7d",
+//             }
+
+//         );
+
+
+//         console.log(
+//             "✅ JWT generated successfully"
+//         );
+
+
+//         // =====================================================
+//         // 10. SUCCESS RESPONSE
+//         // =====================================================
+
+//         console.log(
+//             "🎉 GOOGLE LOGIN SUCCESSFUL"
+//         );
+
+
+//         return res.status(200).json({
+
+//             message:
+//                 "Google login successful",
+
+//             token,
+
+//             user: {
+
+//                 id:
+//                     user._id,
+
+//                 name:
+//                     user.name,
+
+//                 email:
+//                     user.email,
+
+//                 role:
+//                     user.role,
+
+//             },
+
+//         });
+
+
+//     } catch (error) {
+
+//         // =====================================================
+//         // ERROR
+//         // =====================================================
+
+//         console.error(
+//             "❌❌❌ GOOGLE LOGIN ERROR ❌❌❌"
+//         );
+
+//         console.error(
+//             "Error Name:",
+//             error.name
+//         );
+
+//         console.error(
+//             "Error Message:",
+//             error.message
+//         );
+
+//         console.error(
+//             "Full Error:",
+//             error
+//         );
+
+
+//         return res.status(500).json({
+
+//             message:
+//                 "Google login failed",
+
+//             error:
+//                 error.message,
+
+//         });
+
+//     }
+
+// };
+
+// // export const googleLogin = async (req, res) => {
+
+// //     try {
+
+// //         const {
+// //             credential,
+// //         } = req.body;
+
+
+// //         if (!credential) {
+
+// //             return res.status(400).json({
+
+// //                 message:
+// //                     "Google credential is required",
+
+// //             });
+// //         }
+
+
+// //         // ---------------------------------------------
+// //         // Get Login Information
+// //         // ---------------------------------------------
+
+// //         const {
+// //             browser,
+// //             operatingSystem,
+// //             deviceType,
+// //             ipAddress,
+// //         } = getLoginInfo(req);
+
+
+// //         // ---------------------------------------------
+// //         // Mobile Time Restriction
+// //         // ---------------------------------------------
+
+// //         if (deviceType === "mobile") {
+
+// //             const allowedTime =
+// //                 checkMobileLoginTime();
+
+
+// //             if (!allowedTime) {
+
+// //                 return res.status(403).json({
+
+// //                     message:
+// //                         "Mobile login is allowed only between 10:00 AM and 1:00 PM IST",
+
+// //                 });
+// //             }
+// //         }
+
+
+// //         // ---------------------------------------------
+// //         // Verify Google Token
+// //         // ---------------------------------------------
+
+// //         const ticket =
+// //             await client.verifyIdToken({
+
+// //                 idToken: credential,
+
+// //                 audience:
+// //                     process.env.GOOGLE_CLIENT_ID,
+
+// //             });
+
+
+// //         const payload =
+// //             ticket.getPayload();
+
+
+// //         const {
+// //             email,
+// //             name,
+// //             picture,
+// //         } = payload;
+
+
+// //         // ---------------------------------------------
+// //         // Find User
+// //         // ---------------------------------------------
+
+// //         let user =
+// //             await User.findOne({
+// //                 email,
+// //             });
+
+
+// //         // ---------------------------------------------
+// //         // Create User if not exists
+// //         // ---------------------------------------------
+
+// //         if (!user) {
+
+// //             user = await User.create({
+
+// //                 name,
+
+// //                 email,
+
+// //                 profilePhoto:
+// //                     picture,
+
+// //             });
+// //         }
+
+
+// //         // ---------------------------------------------
+// //         // Chrome → OTP
+// //         // ---------------------------------------------
+
+// //         if (browser === "Google Chrome") {
+
+// //             const otp = Math.floor(
+
+// //                 100000 +
+// //                 Math.random() * 900000
+
+// //             ).toString();
+
+
+// //             const expiresAt =
+// //                 new Date(
+// //                     Date.now() +
+// //                     5 * 60 * 1000
+// //                 );
+
+
+// //             await LoginOtp.deleteMany({
+
+// //                 userId: user._id,
+
+// //                 email: user.email,
+
+// //             });
+
+
+// //             await LoginOtp.create({
+
+// //                 userId: user._id,
+
+// //                 email: user.email,
+
+// //                 otp,
+
+// //                 expiresAt,
+
+// //                 verified: false,
+
+// //             });
+
+
+// //             const emailSent =
+// //                 await sendOTPEmail(
+// //                     user.email,
+// //                     otp
+// //                 );
+
+
+// //             if (!emailSent) {
+
+// //                 return res.status(500).json({
+
+// //                     message:
+// //                         "Failed to send login OTP",
+
+// //                 });
+// //             }
+
+
+// //             return res.status(200).json({
+
+// //                 message:
+// //                     "Login OTP sent successfully",
+
+// //                 requiresOTP: true,
+
+// //                 email: user.email,
+
+// //                 userId: user._id,
+
+// //             });
+// //         }
+
+
+// //         // ---------------------------------------------
+// //         // Normal Google Login
+// //         // ---------------------------------------------
+
+// //         await LoginHistory.create({
+
+// //             user: user._id,
+
+// //             browser,
+
+// //             operatingSystem,
+
+// //             deviceType,
+
+// //             ipAddress,
+
+// //             loginStatus: "success",
+
+// //         });
+
+
+// //         const token = jwt.sign(
+
+// //             {
+// //                 id: user._id,
+// //                 role: user.role,
+// //             },
+
+// //             process.env.JWT_SECRET,
+
+// //             {
+// //                 expiresIn: "7d",
+// //             }
+
+// //         );
+
+
+// //         return res.status(200).json({
+
+// //             message:
+// //                 "Google login successful",
+
+// //             token,
+
+// //             user: {
+
+// //                 id: user._id,
+
+// //                 name: user.name,
+
+// //                 email: user.email,
+
+// //                 role: user.role,
+
+// //             },
+
+// //         });
+
+// //     } catch (error) {
+
+// //         console.error(
+// //             "Google Login Error:",
+// //             error
+// //         );
+
+// //         return res.status(500).json({
+
+// //             message:
+// //                 "Google login failed",
+
+// //         });
+// //     }
+// // };
+
+// export const forgotPassword = async (req, res) => {
+//     try {
+
+//         console.log("FORGOT PASSWORD BODY:", req.body);
+
+//         const { identifier } = req.body;
+
+//         // -------------------------------------------------
+//         // CHECK EMAIL / PHONE
+//         // -------------------------------------------------
+
+//         if (!identifier || !identifier.trim()) {
+//             return res.status(400).json({
+//                 message: "Email or phone is required"
+//             });
+//         }
+
+//         const value = identifier.trim();
+
+//         // -------------------------------------------------
+//         // FIND USER
+//         // -------------------------------------------------
+
+//         const user = await User.findOne({
+//             $or: [
+//                 { email: value },
+//                 { phone: value }
+//             ]
+//         });
+
+//         if (!user) {
+//             return res.status(404).json({
+//                 message: "User not found"
+//             });
+//         }
+
+//         console.log("User:", user.email);
+//         console.log(
+//             "Last Password Reset:",
+//             user.lastPasswordResetAt
+//         );
+
+//         // -------------------------------------------------
+//         // CHECK 24 HOURS LIMIT
+//         // -------------------------------------------------
+
+//         if (user.lastPasswordResetAt) {
+
+//             const lastReset =
+//                 new Date(user.lastPasswordResetAt).getTime();
+
+//             const now = Date.now();
+
+//             const twentyFourHours =
+//                 24 * 60 * 60 * 1000;
+
+//             const timePassed =
+//                 now - lastReset;
+
+//             console.log(
+//                 "Hours since last reset:",
+//                 timePassed / (1000 * 60 * 60)
+//             );
+
+//             // Less than 24 hours
+//             if (timePassed < twentyFourHours) {
+
+//                 return res.status(429).json({
+//                     message:
+//                         "You can reset your password only once every 24 hours."
+//                 });
+//             }
+//         }
+
+//         // -------------------------------------------------
+//         // GENERATE NEW PASSWORD
+//         // -------------------------------------------------
+
+//         const characters =
+//             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+//         let newPassword = "";
+
+//         for (let i = 0; i < 6; i++) {
+
+//             newPassword +=
+//                 characters[
+//                     Math.floor(
+//                         Math.random() * characters.length
+//                     )
+//                 ];
+//         }
+
+//         // -------------------------------------------------
+//         // HASH PASSWORD
+//         // -------------------------------------------------
+
+//         const hashedPassword =
+//             await bcrypt.hash(
+//                 newPassword,
+//                 10
+//             );
+
+//         // -------------------------------------------------
+//         // SEND PASSWORD EMAIL
+//         // -------------------------------------------------
+
+//         const emailSent =
+//             await sendForgotPasswordEmail(
+//                 user.email,
+//                 newPassword
+//             );
+
+//         if (!emailSent) {
+
+//             return res.status(500).json({
+//                 message:
+//                     "Failed to send password email"
+//             });
+//         }
+
+//         // -------------------------------------------------
+//         // UPDATE PASSWORD
+//         // -------------------------------------------------
+
+//         user.password =
+//             hashedPassword;
+
+//         // IMPORTANT:
+//         // Same field used in limit check
+//         user.lastPasswordResetAt =
+//             new Date();
+
+//         await user.save();
+
+//         console.log(
+//             "Password reset time saved:",
+//             user.lastPasswordResetAt
+//         );
+
+//         // -------------------------------------------------
+//         // SUCCESS
+//         // -------------------------------------------------
+
+//         return res.status(200).json({
+//             message:
+//                 "New password sent successfully"
+//         });
+
+//     } catch (error) {
+
+//         console.error(
+//             "Forgot Password Error:",
+//             error
+//         );
+
+//         return res.status(500).json({
+//             message:
+//                 "Something went wrong"
+//         });
+//     }
+// };
+
+
+// // =====================================================
+// // GET ALL USERS
+// // =====================================================
+
+// export const getAllUsers = async (req, res) => {
+
+//     try {
+
+//         const users =
+//             await User.find()
+//                 .select("-password");
+
+
+//         return res.status(200).json({
+
+//             count: users.length,
+
+//             users,
+
+//         });
+
+//     } catch (error) {
+
+//         console.error(
+//             "Get All Users Error:",
+//             error
+//         );
+
+//         return res.status(500).json({
+
+//             message:
+//                 "Something went wrong",
+
+//         });
+//     }
+// };
+
+// export const getMyLoginHistory = async (req, res) => {
+//     try {
+//         const userId = req.user.id;
+
+//         const loginHistory = await LoginHistory.find({
+//             user: userId,
+//         })
+//             .sort({ loginTime: -1 })
+//             .select(
+//                 "browser operatingSystem deviceType ipAddress loginStatus loginTime"
+//             );
+
+//         return res.status(200).json({
+//             count: loginHistory.length,
+//             loginHistory,
+//         });
+
+//     } catch (error) {
+//         console.error(
+//             "Get My Login History Error:",
+//             error
+//         );
+
+//         return res.status(500).json({
+//             message: "Something went wrong",
+//         });
+//     }
+// };
 
 
 

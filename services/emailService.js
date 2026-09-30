@@ -4,6 +4,8 @@ import nodemailer from "nodemailer";
 // GMAIL SMTP TRANSPORTER
 // =====================================================
 
+import nodemailer from "nodemailer";
+
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -12,16 +14,24 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-// =====================================================
-// VERIFY GMAIL CONNECTION
-// =====================================================
+transporter.verify((error) => {
 
-transporter.verify((error, success) => {
     if (error) {
-        console.error("❌ Gmail SMTP connection failed:", error.message);
+
+        console.error(
+            "❌ Gmail SMTP connection failed:"
+        );
+
+        console.error(error);
+
     } else {
-        console.log("✅ Gmail SMTP is ready");
+
+        console.log(
+            "✅ Gmail SMTP is ready"
+        );
+
     }
+
 });
 
 // =====================================================
