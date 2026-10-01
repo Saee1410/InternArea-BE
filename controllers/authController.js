@@ -107,6 +107,14 @@ const getLoginInfo = (req) => {
         req.socket.remoteAddress ||
         "Unknown";
 
+    console.log(`\n🔍 [AUTH-CLIENT-DIAGNOSE]`);
+    console.log(`   ├─ Raw User-Agent: "${userAgent}"`);
+    console.log(`   ├─ Detected Browser: "${browser}"`);
+    console.log(`   ├─ Operating System: "${operatingSystem}"`);
+    console.log(`   ├─ Device Type: "${deviceType}"`);
+    console.log(`   ├─ IP Address: "${ipAddress}"`);
+    console.log(`   └─ Is Google Chrome? ${browser === "Google Chrome"} (Chrome triggers OTP, all other browsers BYPASS OTP)\n`);
+
     return {
         browser,
         operatingSystem,
@@ -349,29 +357,31 @@ export const login = async (req, res) => {
                     5 * 60 * 1000
                 );
 
+            console.log("\n==========================================");
+            console.log("🔐 [LOGIN-DIAGNOSE] Google Chrome detected → OTP Flow Triggered");
+            console.log(`   ├─ Email: ${user.email}`);
+            console.log(`   ├─ User ID: ${user._id}`);
+            console.log(`   ├─ 🔥 GENERATED OTP: [ ${otp} ]`);
+            console.log(`   └─ Expires At: ${expiresAt.toISOString()}`);
+            console.log("==========================================\n");
+
             // Delete previous OTPs
             await LoginOtp.deleteMany({
-
                 userId: user._id,
                 email: user.email,
-
             });
 
             // Save new OTP
             await LoginOtp.create({
-
                 userId: user._id,
                 email: user.email,
                 otp,
                 expiresAt,
                 verified: false,
-
             });
 
-            console.log(
-                "🔐 Login OTP generated for:",
-                user.email
-            );
+            console.log(`💾 [LOGIN-DIAGNOSE] OTP [ ${otp} ] saved to MongoDB for ${user.email}`);
+            console.log(`📧 [LOGIN-DIAGNOSE] Attempting to dispatch email via sendOTPEmail...`);
 
             const emailSent =
                 await sendOTPEmail(
@@ -380,43 +390,36 @@ export const login = async (req, res) => {
                 );
 
             if (!emailSent) {
-
-                console.error(
-                    "❌ Login OTP email failed"
-                );
+                console.error("❌ [LOGIN-DIAGNOSE] Email delivery failed or timed out.");
+                console.warn(`💡 [LOGIN-DIAGNOSE] For diagnostic testing, the valid OTP is: ${otp}`);
 
                 return res.status(500).json({
-
-                    message:
-                        "Failed to send login OTP",
-
+                    message: "Failed to send login OTP email. Check terminal for diagnostic OTP code.",
+                    diagnosticOTP: otp,
                 });
             }
 
-            console.log(
-                "✅ Login OTP sent successfully"
-            );
+            console.log("✅ [LOGIN-DIAGNOSE] Login OTP email sent successfully. Returning requiresOTP: true to client.");
 
             return res.status(200).json({
-
                 message:
                     "Login OTP sent successfully",
-
                 requiresOTP:
                     true,
-
                 email:
                     user.email,
-
                 userId:
                     user._id,
-
             });
         }
 
         // ---------------------------------------------
-        // NORMAL LOGIN
+        // NON-CHROME LOGIN (OTP BYPASS)
         // ---------------------------------------------
+
+        console.log(`\n⚠️ [LOGIN-DIAGNOSE] Browser "${browser}" is NOT "Google Chrome"!`);
+        console.log(`   ├─ OTP flow is BYPASSED.`);
+        console.log(`   └─ Issuing JWT token directly for user: ${user.email}\n`);
 
         await LoginHistory.create({
 
@@ -503,13 +506,16 @@ export const verifyLoginOTP = async (req, res) => {
             otp,
         } = req.body;
 
+        console.log("\n==========================================");
+        console.log("🔐 [VERIFY-OTP-DIAGNOSE] OTP Verification Attempt:");
+        console.log(`   ├─ User ID: ${userId}`);
+        console.log(`   ├─ Submitted OTP: "${otp}"`);
+        console.log("==========================================");
+
         if (!userId || !otp) {
-
+            console.error("❌ [VERIFY-OTP-DIAGNOSE] Missing userId or otp in request body");
             return res.status(400).json({
-
-                message:
-                    "User ID and OTP are required",
-
+                message: "User ID and OTP are required",
             });
         }
 
@@ -519,26 +525,21 @@ export const verifyLoginOTP = async (req, res) => {
 
         const otpRecord =
             await LoginOtp.findOne({
-
                 userId,
                 otp: String(otp),
                 verified: false,
-
             }).sort({
-
                 createdAt: -1,
-
             });
 
         if (!otpRecord) {
-
+            console.error(`❌ [VERIFY-OTP-DIAGNOSE] No matching unverified OTP record found in DB for user ${userId} with otp ${otp}`);
             return res.status(400).json({
-
-                message:
-                    "Invalid OTP",
-
+                message: "Invalid OTP",
             });
         }
+
+        console.log(`✅ [VERIFY-OTP-DIAGNOSE] Found OTP record: ID=${otpRecord._id}, expiresAt=${otpRecord.expiresAt}`);
 
         // ---------------------------------------------
         // Check Expiry
@@ -548,16 +549,13 @@ export const verifyLoginOTP = async (req, res) => {
             !otpRecord.expiresAt ||
             otpRecord.expiresAt < new Date()
         ) {
-
+            console.error(`❌ [VERIFY-OTP-DIAGNOSE] OTP expired at ${otpRecord.expiresAt} (Current: ${new Date().toISOString()})`);
             await LoginOtp.findByIdAndDelete(
                 otpRecord._id
             );
 
             return res.status(400).json({
-
-                message:
-                    "OTP has expired",
-
+                message: "OTP has expired",
             });
         }
 
@@ -571,14 +569,13 @@ export const verifyLoginOTP = async (req, res) => {
             );
 
         if (!user) {
-
+            console.error(`❌ [VERIFY-OTP-DIAGNOSE] User ${userId} not found in database`);
             return res.status(404).json({
-
-                message:
-                    "User not found",
-
+                message: "User not found",
             });
         }
+
+        console.log(`✅ [VERIFY-OTP-DIAGNOSE] OTP successfully verified for user: ${user.email}`);
 
         // ---------------------------------------------
         // Mark OTP Verified
@@ -858,9 +855,9 @@ export const googleLogin = async (req, res) => {
         // 9. CHROME → LOGIN OTP FLOW
         // ==================================================
         if (isChrome) {
-            console.log(
-                "🔐 STARTING GOOGLE LOGIN OTP FLOW"
-            );
+            console.log("\n==========================================");
+            console.log("🔐 [GOOGLE-LOGIN-DIAGNOSE] Google Chrome detected → Starting OTP Flow");
+            console.log(`   ├─ User: ${user.email} (ID: ${user._id})`);
 
             // --------------------------------------------------
             // GENERATE OTP
@@ -871,116 +868,24 @@ export const googleLogin = async (req, res) => {
                     Math.random() * 900000
                 ).toString();
 
-            console.log(
-                "🔢 OTP generated"
-            );
-
-            // --------------------------------------------------
-            // OTP EXPIRY - 5 MINUTES
-            // --------------------------------------------------
             const expiresAt =
                 new Date(
                     Date.now() +
                     5 * 60 * 1000
                 );
 
-            console.log(
-                "⏳ OTP expires at:",
-                expiresAt
-            );
+            console.log(`   ├─ 🔥 GENERATED OTP: [ ${otp} ]`);
+            console.log(`   └─ Expires At: ${expiresAt.toISOString()}`);
+            console.log("==========================================\n");
 
             // --------------------------------------------------
-            // SEND EMAIL FIRST
-            // --------------------------------------------------
-            console.log(
-                "📧 Sending OTP to:",
-                user.email
-            );
-
-            let emailSent = false;
-
-            try {
-                emailSent =
-                    await sendOTPEmail(
-                        user.email,
-                        otp
-                    );
-
-                console.log(
-                    "📨 Email result:",
-                    emailSent
-                );
-            } catch (emailError) {
-                console.error(
-                    "❌ OTP EMAIL THROW ERROR"
-                );
-
-                console.error(
-                    "Message:",
-                    emailError.message
-                );
-
-                console.error(
-                    "Code:",
-                    emailError.code
-                );
-
-                console.error(
-                    "Command:",
-                    emailError.command
-                );
-
-                console.error(
-                    "Response:",
-                    emailError.response
-                );
-
-                console.error(
-                    "Full error:",
-                    emailError
-                );
-
-                return res.status(500).json({
-                    message:
-                        "Failed to send login OTP",
-                    error:
-                        emailError.message,
-                });
-            }
-
-            // --------------------------------------------------
-            // EMAIL FAILED
-            // --------------------------------------------------
-            if (!emailSent) {
-                console.error(
-                    "❌ OTP EMAIL FAILED"
-                );
-
-                return res.status(500).json({
-                    message:
-                        "Failed to send login OTP",
-                });
-            }
-
-            console.log(
-                "✅ OTP email sent successfully"
-            );
-
-            // --------------------------------------------------
-            // DELETE OLD OTPs
+            // DELETE OLD OTPs AND SAVE NEW OTP FIRST
             // --------------------------------------------------
             await LoginOtp.deleteMany({
                 userId: user._id,
                 email: user.email,
             });
 
-            console.log(
-                "🗑️ Old OTPs deleted"
-            );
-
-            // --------------------------------------------------
-            // SAVE NEW OTP
-            // --------------------------------------------------
             await LoginOtp.create({
                 userId: user._id,
                 email: user.email,
@@ -989,38 +894,46 @@ export const googleLogin = async (req, res) => {
                 verified: false,
             });
 
-            console.log(
-                "💾 New OTP saved"
-            );
+            console.log(`💾 [GOOGLE-LOGIN-DIAGNOSE] OTP [ ${otp} ] saved to MongoDB for ${user.email}`);
 
             // --------------------------------------------------
-            // RETURN OTP RESPONSE
+            // SEND EMAIL
             // --------------------------------------------------
-            console.log(
-                "✅ LOGIN OTP SENT SUCCESSFULLY"
-            );
+            console.log(`📧 [GOOGLE-LOGIN-DIAGNOSE] Sending OTP to: ${user.email}`);
+
+            let emailSent = false;
+            try {
+                emailSent = await sendOTPEmail(user.email, otp);
+            } catch (emailError) {
+                console.error("❌ [GOOGLE-LOGIN-DIAGNOSE] Exception during sendOTPEmail:", emailError.message);
+            }
+
+            if (!emailSent) {
+                console.error("❌ [GOOGLE-LOGIN-DIAGNOSE] OTP Email failed or timed out.");
+                console.warn(`💡 [GOOGLE-LOGIN-DIAGNOSE] For diagnostic testing, the valid OTP is: ${otp}`);
+
+                return res.status(500).json({
+                    message: "Failed to send login OTP email. Check terminal for diagnostic OTP code.",
+                    diagnosticOTP: otp,
+                });
+            }
+
+            console.log("✅ [GOOGLE-LOGIN-DIAGNOSE] Login OTP email sent successfully. Returning requiresOTP: true to client.");
 
             return res.status(200).json({
-                message:
-                    "Login OTP sent successfully",
-
-                requiresOTP:
-                    true,
-
-                email:
-                    user.email,
-
-                userId:
-                    user._id,
+                message: "Login OTP sent successfully",
+                requiresOTP: true,
+                email: user.email,
+                userId: user._id,
             });
         }
 
         // ==================================================
         // 10. NON-CHROME LOGIN
         // ==================================================
-        console.log(
-            "🌐 Non-Chrome browser"
-        );
+        console.log(`\n⚠️ [GOOGLE-LOGIN-DIAGNOSE] Non-Chrome browser detected: "${browser}"`);
+        console.log(`   ├─ OTP flow is BYPASSED.`);
+        console.log(`   └─ Issuing JWT token directly for user: ${user.email}\n`);
 
         // --------------------------------------------------
         // SAVE LOGIN HISTORY

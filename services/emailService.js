@@ -1,16 +1,23 @@
 import nodemailer from "nodemailer";
 
 // =====================================================
-// GMAIL SMTP TRANSPORTER
+// GMAIL SMTP TRANSPORTER (DIAGNOSTIC ENABLED)
 // =====================================================
 
+console.log("\n[EMAIL-INIT] Configuring Nodemailer transporter:");
+console.log(`   ├─ Host: smtp.gmail.com:587 (family: 4)`);
+console.log(`   ├─ User: ${process.env.MAIL_USER || "MISSING"}`);
+console.log(`   └─ Pass: ${process.env.MAIL_PASS ? "******** (Loaded)" : "MISSING"}`);
+
 const transporter = nodemailer.createTransport({
-    // service: "gmail",
     host: "smtp.gmail.com",
     port: 587,
     secure: false,
     requireTLS: true,
     family: 4,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
 
     auth: {
         user: process.env.MAIL_USER,
@@ -26,22 +33,27 @@ const transporter = nodemailer.createTransport({
 transporter.verify((error, success) => {
 
     if (error) {
-        console.error(
-            "❌ Gmail SMTP connection failed:",
-            error.message
-        );
+        console.error("❌ [EMAIL-VERIFY-FAIL] Gmail SMTP connection failed:");
+        console.error("   ├─ Message:", error.message);
+        console.error("   ├─ Code:", error.code);
+        console.error("   └─ Command:", error.command);
     } else {
-        console.log("✅ Gmail SMTP is ready");
+        console.log("✅ [EMAIL-VERIFY-OK] Gmail SMTP is ready and authenticated");
     }
 
 });
 
 
 // =====================================================
-// SEND RESUME OTP EMAIL
+// SEND RESUME / LOGIN OTP EMAIL
 // =====================================================
 
 export const sendOTPEmail = async (email, otp) => {
+    const startTime = Date.now();
+    console.log(`\n📨 [EMAIL-SEND-START] Preparing OTP email:`);
+    console.log(`   ├─ To: ${email}`);
+    console.log(`   ├─ OTP: ${otp}`);
+    console.log(`   └─ Sender: ${process.env.MAIL_USER}`);
 
     try {
 
@@ -90,22 +102,24 @@ export const sendOTPEmail = async (email, otp) => {
         };
 
 
+        console.log(`   ├─ Sending via SMTP transporter...`);
         const info = await transporter.sendMail(mailOptions);
+        const duration = Date.now() - startTime;
 
-
-        console.log("✅ Resume OTP email sent successfully");
-        console.log("📧 To:", email);
-        console.log("📨 Message ID:", info.messageId);
-
+        console.log(`✅ [EMAIL-SEND-SUCCESS] (${duration}ms)`);
+        console.log(`   ├─ Message ID: ${info.messageId}`);
+        console.log(`   └─ Response: ${info.response}\n`);
 
         return true;
 
     } catch (error) {
-
-        console.error(
-            "❌ Resume OTP Email Error:",
-            error.message
-        );
+        const duration = Date.now() - startTime;
+        console.error(`❌ [EMAIL-SEND-FAILED] (${duration}ms)`);
+        console.error(`   ├─ Message: ${error.message}`);
+        console.error(`   ├─ Code: ${error.code}`);
+        console.error(`   ├─ Command: ${error.command}`);
+        console.error(`   ├─ Response: ${error.response || "No response"}`);
+        console.error(`   └─ Stack:`, error.stack, "\n");
 
         return false;
     }

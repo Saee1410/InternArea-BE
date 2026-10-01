@@ -78,6 +78,26 @@ app.use(
 );
 app.use(express.json());
 
+// ==========================================
+// [DIAGNOSTIC] REQUEST LOGGER
+// ==========================================
+app.use((req, res, next) => {
+    const start = Date.now();
+    const origin = req.headers["origin"] || "No-Origin";
+    const userAgent = req.headers["user-agent"] || "No-UA";
+
+    console.log(`\n📡 [REQ-START] ${req.method} ${req.originalUrl}`);
+    console.log(`   ├─ Origin: ${origin}`);
+    console.log(`   ├─ IP: ${req.ip || req.socket.remoteAddress}`);
+    console.log(`   └─ User-Agent: ${userAgent}`);
+
+    res.on("finish", () => {
+        const duration = Date.now() - start;
+        console.log(`🏁 [REQ-END] ${req.method} ${req.originalUrl} → Status: ${res.statusCode} (${duration}ms)\n`);
+    });
+
+    next();
+});
 
 // ==========================================
 // ENVIRONMENT CHECK
