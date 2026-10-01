@@ -34,16 +34,46 @@ const PORT = process.env.PORT || 8000;
 
 app.use(
     cors({
-        origin: [
-            "https://intern-area-fe.vercel.app",
-            "http://localhost:5173",
-        ],
+        origin: function (origin, callback) {
+
+            const allowedOrigins = [
+                "https://intern-area-fe.vercel.app",
+                "http://localhost:5173",
+            ];
+
+            // Postman / server-to-server requests
+            if (!origin) {
+                return callback(null, true);
+            }
+
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+
+            console.log("❌ CORS BLOCKED ORIGIN:", origin);
+
+            return callback(
+                new Error("Not allowed by CORS")
+            );
+        },
+
         credentials: true,
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+
+        methods: [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS",
+        ],
+
         allowedHeaders: [
             "Content-Type",
             "Authorization",
         ],
+
+        optionsSuccessStatus: 204,
     })
 );
 app.use(express.json());
