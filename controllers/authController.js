@@ -391,10 +391,14 @@ export const login = async (req, res) => {
 
             if (!emailSent) {
                 console.error("❌ [LOGIN-DIAGNOSE] Email delivery failed or timed out.");
-                console.warn(`💡 [LOGIN-DIAGNOSE] For diagnostic testing, the valid OTP is: ${otp}`);
+                console.warn(`💡 [LOGIN-DIAGNOSE] The OTP [ ${otp} ] is SAVED in MongoDB. Returning requiresOTP: true so frontend opens OTP modal!`);
 
-                return res.status(500).json({
-                    message: "Failed to send login OTP email. Check terminal for diagnostic OTP code.",
+                return res.status(200).json({
+                    message: "Login OTP generated! If email is delayed, use the code from server logs.",
+                    requiresOTP: true,
+                    email: user.email,
+                    userId: user._id,
+                    emailSent: false,
                     diagnosticOTP: otp,
                 });
             }
@@ -410,6 +414,7 @@ export const login = async (req, res) => {
                     user.email,
                 userId:
                     user._id,
+                emailSent: true,
             });
         }
 
@@ -910,10 +915,14 @@ export const googleLogin = async (req, res) => {
 
             if (!emailSent) {
                 console.error("❌ [GOOGLE-LOGIN-DIAGNOSE] OTP Email failed or timed out.");
-                console.warn(`💡 [GOOGLE-LOGIN-DIAGNOSE] For diagnostic testing, the valid OTP is: ${otp}`);
+                console.warn(`💡 [GOOGLE-LOGIN-DIAGNOSE] The OTP [ ${otp} ] is SAVED in MongoDB. Returning requiresOTP: true so frontend opens OTP modal!`);
 
-                return res.status(500).json({
-                    message: "Failed to send login OTP email. Check terminal for diagnostic OTP code.",
+                return res.status(200).json({
+                    message: "Login OTP generated! If email is delayed, use the code from server logs.",
+                    requiresOTP: true,
+                    email: user.email,
+                    userId: user._id,
+                    emailSent: false,
                     diagnosticOTP: otp,
                 });
             }
@@ -925,6 +934,7 @@ export const googleLogin = async (req, res) => {
                 requiresOTP: true,
                 email: user.email,
                 userId: user._id,
+                emailSent: true,
             });
         }
 
