@@ -1,344 +1,453 @@
+import dns from "dns";
 import nodemailer from "nodemailer";
 
-// =====================================================
-// ENV CHECK
-// =====================================================
+// Force IPv4 first
+dns.setDefaultResultOrder("ipv4first");
 
 console.log("📧 MAIL_USER exists:", !!process.env.MAIL_USER);
 console.log("🔑 MAIL_PASS exists:", !!process.env.MAIL_PASS);
-console.log("📧 MAIL_USER:", process.env.MAIL_USER || "NOT SET");
-
-// =====================================================
-// GMAIL TRANSPORTER
-// =====================================================
 
 const transporter = nodemailer.createTransport({
 host: "smtp.gmail.com",
 port: 587,
 secure: false,
-logger: true,
-debug: true,
- 
+
 auth: {
 user: process.env.MAIL_USER,
 pass: process.env.MAIL_PASS,
 },
+
+tls: {
+rejectUnauthorized: false,
+},
 });
 
-// =====================================================
-// VERIFY SMTP
-// =====================================================
-
-
+// SMTP Verify
 transporter.verify((error, success) => {
+console.log("================================");
 
-    console.log("=================================");
-    console.log("📧 CHECKING GMAIL SMTP");
-    console.log("=================================");
+if (error) {
+console.error("❌ SMTP VERIFY FAILED");
+console.error(error);
+} else {
+console.log("✅ SMTP READY");
+}
 
-    if (error) {
-
-        console.error("❌ GMAIL SMTP VERIFY FAILED");
-        console.error("Name:", error.name);
-        console.error("Message:", error.message);
-        console.error("Code:", error.code);
-        console.error("Command:", error.command);
-        console.error("Response:", error.response);
-        console.error("Response Code:", error.responseCode);
-        console.error("Full Error:", error);
-
-    } else {
-
-        console.log("✅✅ GMAIL SMTP VERIFIED SUCCESSFULLY");
-        console.log("SMTP connection is working.");
-
-    }
-
-    console.log("=================================");
+console.log("================================");
 });
 
+// Common Send Function
+export const sendEmail = async ({
+to,
+subject,
+html,
+}) => {
+try {
 
-// =====================================================
-// COMMON EMAIL SENDER
-// =====================================================
+const info = await transporter.sendMail({
+from: `"InternArea" <${process.env.MAIL_USER}>`,
+to,
+subject,
+html,
+});
 
-const sendEmail = async (mailOptions) => {
-    try {
-        console.log("📤 ABOUT TO SEND EMAIL");
-        console.log("📧 From:", mailOptions.from);
-        console.log("📧 To:", mailOptions.to);
-        console.log("📧 Subject:", mailOptions.subject);
+console.log("✅ EMAIL SENT");
+console.log(info.messageId);
 
-        const info = await transporter.sendMail(mailOptions);
+return info;
 
-        console.log("=================================");
-        console.log("✅ EMAIL SENT SUCCESSFULLY");
-        console.log("📨 Message ID:", info.messageId);
-        console.log("📡 Response:", info.response);
-        console.log("=================================");
+} catch (error) {
 
-        return {
-            success: true,
-            messageId: info.messageId,
-        };
+console.error("❌ EMAIL SEND FAILED");
+console.error(error);
 
-    } catch (error) {
-
-        console.error("=================================");
-        console.error("❌❌❌ EMAIL SEND FAILED ❌❌❌");
-        console.error("Error Name:", error.name);
-        console.error("Error Message:", error.message);
-        console.error("Error Code:", error.code);
-        console.error("Error Command:", error.command);
-        console.error("Error Response:", error.response);
-        console.error("Error Response Code:", error.responseCode);
-        console.error("Full Error:", error);
-        console.error("=================================");
-
-        throw error;
-    }
+throw error;
+}
 };
-// =====================================================
-// LOGIN OTP
-// =====================================================
 
+// Login OTP
 export const sendOTPEmail = async (email, otp) => {
 
-    console.log("📧 Sending LOGIN OTP");
-    console.log("📧 To:", email);
+return sendEmail({
+to: email,
 
-    return await sendEmail({
-        from: `"InternArea" <${process.env.MAIL_USER}>`,
+subject: "InternArea - Login OTP",
 
-        to: email,
+html: `
+<h2>InternArea Login OTP</h2>
 
-        subject: "InternArea - Login OTP",
+<p>Your OTP:</p>
 
-        html: `
-            <div style="
-                font-family: Arial, sans-serif;
-                padding: 20px;
-                max-width: 600px;
-                margin: auto;
-            ">
+<h1>${otp}</h1>
 
-                <h2 style="color:#008BDC;">
-                    InternArea Login Verification
-                </h2>
-
-                <p>
-                    Your OTP for login is:
-                </p>
-
-                <h1 style="
-                    letter-spacing: 8px;
-                    text-align: center;
-                    background: #f4f4f4;
-                    padding: 15px;
-                    border-radius: 8px;
-                ">
-                    ${otp}
-                </h1>
-
-                <p>
-                    This OTP is valid for 5 minutes.
-                </p>
-
-                <p>
-                    If you did not request this login,
-                    please ignore this email.
-                </p>
-
-            </div>
-        `,
-    });
+<p>Valid for 5 minutes.</p>
+`,
+});
 };
 
-// =====================================================
-// FORGOT PASSWORD
-// =====================================================
-
+// Forgot Password
 export const sendForgotPasswordEmail = async (
-    email,
-    newPassword
+email,
+password
 ) => {
 
-    return await sendEmail({
-        from: `"InternArea" <${process.env.MAIL_USER}>`,
+return sendEmail({
+to: email,
 
-        to: email,
+subject: "InternArea - Password Reset",
 
-        subject: "InternArea - Password Reset",
+html: `
+<h2>Password Reset</h2>
 
-        html: `
-            <div style="
-                font-family: Arial, sans-serif;
-                padding: 20px;
-                max-width: 600px;
-                margin: auto;
-            ">
+<p>Your new password:</p>
 
-                <h2>Password Reset</h2>
-
-                <p>Your new password is:</p>
-
-                <h2 style="
-                    background:#f4f4f4;
-                    padding:15px;
-                    text-align:center;
-                ">
-                    ${newPassword}
-                </h2>
-
-                <p>
-                    Please login using this password
-                    and change it from your profile.
-                </p>
-
-            </div>
-        `,
-    });
+<h1>${password}</h1>
+`,
+});
 };
 
-// =====================================================
-// FRENCH OTP
-// =====================================================
 
-export const sendFrenchLanguageOTP = async (
-    email,
-    otp
-) => {
+// import nodemailer from "nodemailer";
 
-    return await sendEmail({
-        from: `"InternArea" <${process.env.MAIL_USER}>`,
+// // =====================================================
+// // ENV CHECK
+// // =====================================================
 
-        to: email,
+// console.log("📧 MAIL_USER exists:", !!process.env.MAIL_USER);
+// console.log("🔑 MAIL_PASS exists:", !!process.env.MAIL_PASS);
+// console.log("📧 MAIL_USER:", process.env.MAIL_USER || "NOT SET");
 
-        subject:
-            "InternArea - French Language OTP Verification",
+// // =====================================================
+// // GMAIL TRANSPORTER
+// // =====================================================
 
-        html: `
-            <div style="
-                font-family:Arial;
-                padding:20px;
-                max-width:600px;
-                margin:auto;
-            ">
+// const transporter = nodemailer.createTransport({
+// host: "smtp.gmail.com",
+// port: 587,
+// secure: false,
+// logger: true,
+// debug: true,
+//  
+// auth: {
+// user: process.env.MAIL_USER,
+// pass: process.env.MAIL_PASS,
+// },
+// });
 
-                <h2>French Language Verification</h2>
+// // =====================================================
+// // VERIFY SMTP
+// // =====================================================
 
-                <p>
-                    Your verification OTP is:
-                </p>
 
-                <h1 style="
-                    letter-spacing:8px;
-                    text-align:center;
-                    background:#f4f4f4;
-                    padding:15px;
-                ">
-                    ${otp}
-                </h1>
+// transporter.verify((error, success) => {
 
-                <p>
-                    This OTP is valid for 5 minutes.
-                </p>
+//     console.log("=================================");
+//     console.log("📧 CHECKING GMAIL SMTP");
+//     console.log("=================================");
 
-            </div>
-        `,
-    });
-};
+//     if (error) {
 
-// =====================================================
-// SUBSCRIPTION INVOICE
-// =====================================================
+//         console.error("❌ GMAIL SMTP VERIFY FAILED");
+//         console.error("Name:", error.name);
+//         console.error("Message:", error.message);
+//         console.error("Code:", error.code);
+//         console.error("Command:", error.command);
+//         console.error("Response:", error.response);
+//         console.error("Response Code:", error.responseCode);
+//         console.error("Full Error:", error);
 
-export const sendSubscriptionInvoiceEmail = async (
-    email,
-    plan,
-    amount,
-    paymentId,
-    orderId,
-    startDate,
-    endDate
-) => {
+//     } else {
 
-    return await sendEmail({
-        from: `"InternArea" <${process.env.MAIL_USER}>`,
+//         console.log("✅✅ GMAIL SMTP VERIFIED SUCCESSFULLY");
+//         console.log("SMTP connection is working.");
 
-        to: email,
+//     }
 
-        subject:
-            "InternArea - Subscription Payment Successful",
+//     console.log("=================================");
+// });
 
-        html: `
-            <div style="
-                font-family:Arial;
-                padding:20px;
-                max-width:600px;
-                margin:auto;
-                border:1px solid #e5e7eb;
-                border-radius:10px;
-            ">
 
-                <h2 style="color:#1976d2;">
-                    InternArea Subscription
-                </h2>
+// // =====================================================
+// // COMMON EMAIL SENDER
+// // =====================================================
 
-                <p>Hello,</p>
+// const sendEmail = async (mailOptions) => {
+//     try {
+//         console.log("📤 ABOUT TO SEND EMAIL");
+//         console.log("📧 From:", mailOptions.from);
+//         console.log("📧 To:", mailOptions.to);
+//         console.log("📧 Subject:", mailOptions.subject);
 
-                <p>
-                    Your subscription payment was successful.
-                </p>
+//         const info = await transporter.sendMail(mailOptions);
 
-                <div style="
-                    background:#f8fafc;
-                    padding:20px;
-                    border-radius:8px;
-                ">
+//         console.log("=================================");
+//         console.log("✅ EMAIL SENT SUCCESSFULLY");
+//         console.log("📨 Message ID:", info.messageId);
+//         console.log("📡 Response:", info.response);
+//         console.log("=================================");
 
-                    <h3>Payment Details</h3>
+//         return {
+//             success: true,
+//             messageId: info.messageId,
+//         };
 
-                    <p>
-                        <strong>Plan:</strong>
-                        ${String(plan).toUpperCase()}
-                    </p>
+//     } catch (error) {
 
-                    <p>
-                        <strong>Amount:</strong>
-                        ₹${amount}
-                    </p>
+//         console.error("=================================");
+//         console.error("❌❌❌ EMAIL SEND FAILED ❌❌❌");
+//         console.error("Error Name:", error.name);
+//         console.error("Error Message:", error.message);
+//         console.error("Error Code:", error.code);
+//         console.error("Error Command:", error.command);
+//         console.error("Error Response:", error.response);
+//         console.error("Error Response Code:", error.responseCode);
+//         console.error("Full Error:", error);
+//         console.error("=================================");
 
-                    <p>
-                        <strong>Payment ID:</strong>
-                        ${paymentId}
-                    </p>
+//         throw error;
+//     }
+// };
+// // =====================================================
+// // LOGIN OTP
+// // =====================================================
 
-                    <p>
-                        <strong>Order ID:</strong>
-                        ${orderId}
-                    </p>
+// export const sendOTPEmail = async (email, otp) => {
 
-                    <p>
-                        <strong>Start Date:</strong>
-                        ${new Date(startDate).toLocaleDateString("en-IN")}
-                    </p>
+//     console.log("📧 Sending LOGIN OTP");
+//     console.log("📧 To:", email);
 
-                    <p>
-                        <strong>End Date:</strong>
-                        ${new Date(endDate).toLocaleDateString("en-IN")}
-                    </p>
+//     return await sendEmail({
+//         from: `"InternArea" <${process.env.MAIL_USER}>`,
 
-                </div>
+//         to: email,
 
-                <p>
-                    Thank you for choosing InternArea.
-                </p>
+//         subject: "InternArea - Login OTP",
 
-            </div>
-        `,
-    });
-};
+//         html: `
+//             <div style="
+//                 font-family: Arial, sans-serif;
+//                 padding: 20px;
+//                 max-width: 600px;
+//                 margin: auto;
+//             ">
+
+//                 <h2 style="color:#008BDC;">
+//                     InternArea Login Verification
+//                 </h2>
+
+//                 <p>
+//                     Your OTP for login is:
+//                 </p>
+
+//                 <h1 style="
+//                     letter-spacing: 8px;
+//                     text-align: center;
+//                     background: #f4f4f4;
+//                     padding: 15px;
+//                     border-radius: 8px;
+//                 ">
+//                     ${otp}
+//                 </h1>
+
+//                 <p>
+//                     This OTP is valid for 5 minutes.
+//                 </p>
+
+//                 <p>
+//                     If you did not request this login,
+//                     please ignore this email.
+//                 </p>
+
+//             </div>
+//         `,
+//     });
+// };
+
+// // =====================================================
+// // FORGOT PASSWORD
+// // =====================================================
+
+// export const sendForgotPasswordEmail = async (
+//     email,
+//     newPassword
+// ) => {
+
+//     return await sendEmail({
+//         from: `"InternArea" <${process.env.MAIL_USER}>`,
+
+//         to: email,
+
+//         subject: "InternArea - Password Reset",
+
+//         html: `
+//             <div style="
+//                 font-family: Arial, sans-serif;
+//                 padding: 20px;
+//                 max-width: 600px;
+//                 margin: auto;
+//             ">
+
+//                 <h2>Password Reset</h2>
+
+//                 <p>Your new password is:</p>
+
+//                 <h2 style="
+//                     background:#f4f4f4;
+//                     padding:15px;
+//                     text-align:center;
+//                 ">
+//                     ${newPassword}
+//                 </h2>
+
+//                 <p>
+//                     Please login using this password
+//                     and change it from your profile.
+//                 </p>
+
+//             </div>
+//         `,
+//     });
+// };
+
+// // =====================================================
+// // FRENCH OTP
+// // =====================================================
+
+// export const sendFrenchLanguageOTP = async (
+//     email,
+//     otp
+// ) => {
+
+//     return await sendEmail({
+//         from: `"InternArea" <${process.env.MAIL_USER}>`,
+
+//         to: email,
+
+//         subject:
+//             "InternArea - French Language OTP Verification",
+
+//         html: `
+//             <div style="
+//                 font-family:Arial;
+//                 padding:20px;
+//                 max-width:600px;
+//                 margin:auto;
+//             ">
+
+//                 <h2>French Language Verification</h2>
+
+//                 <p>
+//                     Your verification OTP is:
+//                 </p>
+
+//                 <h1 style="
+//                     letter-spacing:8px;
+//                     text-align:center;
+//                     background:#f4f4f4;
+//                     padding:15px;
+//                 ">
+//                     ${otp}
+//                 </h1>
+
+//                 <p>
+//                     This OTP is valid for 5 minutes.
+//                 </p>
+
+//             </div>
+//         `,
+//     });
+// };
+
+// // =====================================================
+// // SUBSCRIPTION INVOICE
+// // =====================================================
+
+// export const sendSubscriptionInvoiceEmail = async (
+//     email,
+//     plan,
+//     amount,
+//     paymentId,
+//     orderId,
+//     startDate,
+//     endDate
+// ) => {
+
+//     return await sendEmail({
+//         from: `"InternArea" <${process.env.MAIL_USER}>`,
+
+//         to: email,
+
+//         subject:
+//             "InternArea - Subscription Payment Successful",
+
+//         html: `
+//             <div style="
+//                 font-family:Arial;
+//                 padding:20px;
+//                 max-width:600px;
+//                 margin:auto;
+//                 border:1px solid #e5e7eb;
+//                 border-radius:10px;
+//             ">
+
+//                 <h2 style="color:#1976d2;">
+//                     InternArea Subscription
+//                 </h2>
+
+//                 <p>Hello,</p>
+
+//                 <p>
+//                     Your subscription payment was successful.
+//                 </p>
+
+//                 <div style="
+//                     background:#f8fafc;
+//                     padding:20px;
+//                     border-radius:8px;
+//                 ">
+
+//                     <h3>Payment Details</h3>
+
+//                     <p>
+//                         <strong>Plan:</strong>
+//                         ${String(plan).toUpperCase()}
+//                     </p>
+
+//                     <p>
+//                         <strong>Amount:</strong>
+//                         ₹${amount}
+//                     </p>
+
+//                     <p>
+//                         <strong>Payment ID:</strong>
+//                         ${paymentId}
+//                     </p>
+
+//                     <p>
+//                         <strong>Order ID:</strong>
+//                         ${orderId}
+//                     </p>
+
+//                     <p>
+//                         <strong>Start Date:</strong>
+//                         ${new Date(startDate).toLocaleDateString("en-IN")}
+//                     </p>
+
+//                     <p>
+//                         <strong>End Date:</strong>
+//                         ${new Date(endDate).toLocaleDateString("en-IN")}
+//                     </p>
+
+//                 </div>
+
+//                 <p>
+//                     Thank you for choosing InternArea.
+//                 </p>
+
+//             </div>
+//         `,
+//     });
+// };
 
 
 // import nodemailer from "nodemailer";
