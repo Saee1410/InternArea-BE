@@ -25,17 +25,34 @@ const transporter = nodemailer.createTransport({
 // VERIFY SMTP
 // =====================================================
 
+
 transporter.verify((error, success) => {
+
+    console.log("=================================");
+    console.log("📧 CHECKING GMAIL SMTP");
+    console.log("=================================");
+
     if (error) {
+
         console.error("❌ GMAIL SMTP VERIFY FAILED");
+        console.error("Name:", error.name);
         console.error("Message:", error.message);
         console.error("Code:", error.code);
         console.error("Command:", error.command);
         console.error("Response:", error.response);
+        console.error("Response Code:", error.responseCode);
+        console.error("Full Error:", error);
+
     } else {
-        console.log("✅ GMAIL SMTP VERIFIED SUCCESSFULLY");
+
+        console.log("✅✅ GMAIL SMTP VERIFIED SUCCESSFULLY");
+        console.log("SMTP connection is working.");
+
     }
+
+    console.log("=================================");
 });
+
 
 // =====================================================
 // COMMON EMAIL SENDER
@@ -43,11 +60,18 @@ transporter.verify((error, success) => {
 
 const sendEmail = async (mailOptions) => {
     try {
+        console.log("📤 ABOUT TO SEND EMAIL");
+        console.log("📧 From:", mailOptions.from);
+        console.log("📧 To:", mailOptions.to);
+        console.log("📧 Subject:", mailOptions.subject);
+
         const info = await transporter.sendMail(mailOptions);
 
+        console.log("=================================");
         console.log("✅ EMAIL SENT SUCCESSFULLY");
-        console.log("📧 To:", mailOptions.to);
         console.log("📨 Message ID:", info.messageId);
+        console.log("📡 Response:", info.response);
+        console.log("=================================");
 
         return {
             success: true,
@@ -56,17 +80,20 @@ const sendEmail = async (mailOptions) => {
 
     } catch (error) {
 
-        console.error("❌ EMAIL SEND FAILED");
-        console.error("Message:", error.message);
-        console.error("Code:", error.code);
-        console.error("Command:", error.command);
-        console.error("Response:", error.response);
-        console.error("Response Code:", error.responseCode);
+        console.error("=================================");
+        console.error("❌❌❌ EMAIL SEND FAILED ❌❌❌");
+        console.error("Error Name:", error.name);
+        console.error("Error Message:", error.message);
+        console.error("Error Code:", error.code);
+        console.error("Error Command:", error.command);
+        console.error("Error Response:", error.response);
+        console.error("Error Response Code:", error.responseCode);
+        console.error("Full Error:", error);
+        console.error("=================================");
 
         throw error;
     }
 };
-
 // =====================================================
 // LOGIN OTP
 // =====================================================
