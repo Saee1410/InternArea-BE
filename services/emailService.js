@@ -1,6 +1,3 @@
-
-
-
 import nodemailer from "nodemailer";
 
 // =====================================================
@@ -8,7 +5,12 @@ import nodemailer from "nodemailer";
 // =====================================================
 
 const transporter = nodemailer.createTransport({
-    service: "gmail",
+    // service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    family: 4,
 
     auth: {
         user: process.env.MAIL_USER,
