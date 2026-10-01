@@ -27,29 +27,51 @@ console.log(
 
 const transporter = nodemailer.createTransport({
     service: "gmail",
-
     auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS,
     },
 });
 
-// =====================================================
-// VERIFY GMAIL CONNECTION
-// =====================================================
+console.log("📧 Creating Gmail transporter...");
 
-transporter.verify((error, success) => {
-    if (error) {
-        console.error("❌ Gmail SMTP connection failed");
-        console.error("Error message:", error.message);
-        console.error("Error code:", error.code);
-        console.error("Error command:", error.command);
-        console.error("Error response:", error.response);
-        console.error("Full error:", error);
-    } else {
-        console.log("✅ Gmail SMTP is ready");
-    }
-});
+transporter.verify()
+    .then(() => {
+        console.log("✅✅✅ GMAIL SMTP VERIFIED SUCCESSFULLY");
+    })
+    .catch((error) => {
+        console.error("❌❌❌ GMAIL SMTP VERIFY FAILED");
+        console.error("MESSAGE:", error.message);
+        console.error("CODE:", error.code);
+        console.error("COMMAND:", error.command);
+        console.error("RESPONSE:", error.response);
+    });
+
+// const transporter = nodemailer.createTransport({
+//     service: "gmail",
+
+//     auth: {
+//         user: process.env.MAIL_USER,
+//         pass: process.env.MAIL_PASS,
+//     },
+// });
+
+// // =====================================================
+// // VERIFY GMAIL CONNECTION
+// // =====================================================
+
+// transporter.verify((error, success) => {
+//     if (error) {
+//         console.error("❌ Gmail SMTP connection failed");
+//         console.error("Error message:", error.message);
+//         console.error("Error code:", error.code);
+//         console.error("Error command:", error.command);
+//         console.error("Error response:", error.response);
+//         console.error("Full error:", error);
+//     } else {
+//         console.log("✅ Gmail SMTP is ready");
+//     }
+// });
 
 // =====================================================
 // SEND RESUME OTP EMAIL
