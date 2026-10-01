@@ -32,7 +32,20 @@ const PORT = process.env.PORT || 8000;
 // MIDDLEWARE
 // ==========================================
 
-app.use(cors());
+app.use(
+    cors({
+        origin: [
+            "https://intern-area-fe.vercel.app",
+            "http://localhost:5173",
+        ],
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allowedHeaders: [
+            "Content-Type",
+            "Authorization",
+        ],
+    })
+);
 app.use(express.json());
 
 
